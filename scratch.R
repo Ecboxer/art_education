@@ -64,8 +64,6 @@ df %>% select(perc_34_all_2018, Q3) %>%
   geom_point() + facet_wrap(vars(Q3))
 #All schools have a positive relationship between ELA and math scores
 #There is no particular relationship between passing and Q3
-#Calculate lm for each Q3 value
-
 
 #Q4 is the arts supervisor certified in an arts discipline
 df %>% filter(Q3_4 == 0) %>% select(Q4_1, Q4_2) %>%
@@ -73,3 +71,35 @@ df %>% filter(Q3_4 == 0) %>% select(Q4_1, Q4_2) %>%
   ggplot(aes(x=c('Q4_1', 'Q4_2'), y=value)) +
   geom_bar(stat = 'identity')
 #Most supervisors are not certified in an arts discipline
+
+#Q5 is the arts supervisor certified as an administrator
+df %>% filter(Q3_4 == 0) %>% select(Q5_1, Q5_2) %>% 
+  colSums() %>% as_data_frame() %>% 
+  ggplot(aes(x=c('Q5_1', 'Q5_2'), y=value)) +
+  geom_bar(stat = 'identity')
+#Most supervisors are certified in an arts discipline
+
+#Intersection of Q4 and 5
+df %>% filter(Q3_4 == 0) %>% select(Q4_1, Q4_2, Q5_1, Q5_2) %>% 
+  group_by(Q4_1, Q5_1) %>% count() %>% 
+  ggplot(aes(x=c('(0,0)', '(0,1)', '(1,0)', '(1,1)'), y=n)) +
+  geom_bar(stat='identity')
+#Most supervisors are certified only as administrators
+#More are not certified at all than are certified in only an arts discipline or in both
+
+#Q6 part-time certified arts teachers
+q6 <- df %>% colnames() %>% .[grepl("^Q6_", .)]
+df %>% select(q6) %>% 
+  is.na() %>% colSums()
+#No missing values
+df %>% select(q6) %>% colSums() %>% 
+  as_data_frame() %>% 
+  ggplot(aes(x=c('Dance', 'Music', 'Theater', 'Visual Arts'), y=value)) +
+  geom_bar(stat='identity')
+#Part-time certified arts teachers are more frequently certified in visual arts and music
+df %>% select(q6, Q0_DBN) %>% 
+  gather(key=discipline, value=num, -Q0_DBN) %>% 
+  ggplot(aes(x=reorder(Q0_DBN, num), y=num)) +
+  geom_point(aes(color=discipline), alpha=.2) +
+  coord_flip()
+#Incomprehensible
