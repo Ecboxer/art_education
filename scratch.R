@@ -103,3 +103,108 @@ df %>% select(q6, Q0_DBN) %>%
   geom_point(aes(color=discipline), alpha=.2) +
   coord_flip()
 #Incomprehensible
+
+#Q7 part-time teachers with 100% arts schedules
+q7 <- df %>% colnames() %>% .[grepl('^Q7_', .)]
+#Explicitly name the four arts disciplines for many questions
+disc_4 <- c('Dance', 'Music', 'Theater', 'Visual Arts')
+df %>% select(q7) %>% colSums(na.rm = T) %>% 
+  as_data_frame() %>% 
+  ggplot(aes(x=disc_4,
+             y=value)) +
+  geom_bar(stat='identity')
+#Same trend, with more than three times as many music or visual arts teachers teaching 100% of their schedule than dance or theater.
+#Look at the relative numbers, ie take into account responses to Q6
+df %>% select(q6, q7) %>% 
+  mutate(prop_1 = Q7_1 / Q6_1,
+         prop_2 = Q7_2 / Q6_2,
+         prop_3 = Q7_3 / Q6_3,
+         prop_4 = Q7_4 / Q6_4) %>% 
+  gather(key = discipline,
+         value = proportion,
+         -q6, -q7) %>%
+  select(discipline, proportion) %>% 
+  filter(!is.na(proportion)) %>%
+  ggplot(aes(discipline, proportion)) +
+  geom_point() +
+  geom_jitter()
+df %>% select(q6, q7) %>% 
+  mutate(prop_1 = Q7_1 / Q6_1,
+         prop_2 = Q7_2 / Q6_2,
+         prop_3 = Q7_3 / Q6_3,
+         prop_4 = Q7_4 / Q6_4) %>% 
+  gather(key = discipline,
+         value = proportion,
+         -q6, -q7) %>%
+  select(discipline, proportion) %>% 
+  filter(!is.na(proportion)) %>%
+  ggplot(aes(x=proportion, color=discipline)) +
+  geom_density() + 
+  scale_color_manual(labels=disc_4,
+                     values=c('red', 'blue', 'green', 'orange'))
+#There is probably a better way to visualize proportions
+#Music and visual arts have the highest proportion of teachers 100% devoted to arts.
+df %>% select(q6, perc_34_4_2018_ela) %>%
+  lm(perc_34_4_2018_ela ~ Q6_1 + Q6_2 + Q6_3 + Q6_4, data = .) %>% summary()
+#Music and Dance have positive effects on ELA performance, Visual Arts and Theater have negative effects. The music coefficient is the only statistically significant one.
+#Is this different for math scores?
+df %>% select(q6, perc_34_4_2018_math) %>%
+  lm(perc_34_4_2018_math ~ Q6_1 + Q6_2 + Q6_3 + Q6_4, data = .) %>% summary()
+#The sign of effects are the same, positive for music and dance but negative for theater and visual arts, but the magnitudes are larger. The music coefficient is less significant and the visual arts coefficient is significant at p-value .05.
+
+#Q8 rooms devoted to arts education
+q8 <- df %>% colnames() %>% .[grepl('Q8_', .)]
+df %>% select(q8) %>% 
+  mutate(rm_dance = Q8_R1_C1 + Q8_R1_C2,
+         rm_music = Q8_R2_C1 + Q8_R2_C2,
+         rm_thtr = Q8_R3_C1 + Q8_R3_C2,
+         rm_media = Q8_R4_C1 + Q8_R4_C2) %>% 
+  select(starts_with('rm')) %>% 
+  gather(key = discipline,
+         value = num) %>%
+  ggplot(aes(x=num, color=discipline)) +
+  geom_density()
+#There is the greatest variation in music rooms
+df %>% select(q8, perc_34_4_2018_ela) %>% 
+  mutate(rm_dance = Q8_R1_C1 + Q8_R1_C2,
+         rm_music = Q8_R2_C1 + Q8_R2_C2,
+         rm_thtr = Q8_R3_C1 + Q8_R3_C2,
+         rm_media = Q8_R4_C1 + Q8_R4_C2) %>% 
+  select(starts_with('rm'), perc_34_4_2018_ela) %>% 
+  lm(perc_34_4_2018_ela~., data=.) %>% 
+  summary()
+#No statistically significant coefficients
+df %>% select(q8, perc_34_4_2018_math) %>% 
+  mutate(rm_dance = Q8_R1_C1 + Q8_R1_C2,
+         rm_music = Q8_R2_C1 + Q8_R2_C2,
+         rm_thtr = Q8_R3_C1 + Q8_R3_C2,
+         rm_media = Q8_R4_C1 + Q8_R4_C2) %>% 
+  select(starts_with('rm'), perc_34_4_2018_math) %>% 
+  lm(perc_34_4_2018_math~., data=.) %>% 
+  summary()
+#None for math either
+
+#Q9 technology tools available to students
+q9 <- df %>% colnames() %>% .[grepl('Q9_', .)]
+df %>% select(q9) %>% colSums() %>% 
+  as_data_frame() %>% 
+  ggplot(aes(x=reorder(q9, value), y=value)) +
+  geom_bar(stat='identity')
+#Smartboard is the most frequent tool
+df %>% select(q9, perc_34_4_2018_ela) %>% 
+  lm(perc_34_4_2018_ela~., data=.) %>% 
+  summary()
+#_1 Animation software has a significant effect.
+#_2 color printers, _4 digital tablets, _19 film cameras have a lesser but still significant effect.
+#Does this effect remain if we control for wealth in some form, since these seem like expensive items?
+df %>% select(q9, perc_34_4_2018_math) %>% 
+  lm(perc_34_4_2018_math~., data=.) %>% 
+  summary()
+#_4 digital tablets have a significant effect.
+#_1 animation software has a lesser but significant effect.
+
+#Q18 arts instructional hours across grade levels
+q18 <- df %>% colnames() %>% .[grepl('Q18_', .)]
+#Missing this data
+
+#Q16 arts instructional hours for fourth-grade
