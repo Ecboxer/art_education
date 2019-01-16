@@ -208,3 +208,33 @@ q18 <- df %>% colnames() %>% .[grepl('Q18_', .)]
 #Missing this data
 
 #Q16 arts instructional hours for fourth-grade
+q16 <- df %>% colnames() %>% .[grepl('Q16_', .)]
+df %>% select(q16) %>%
+  mutate(
+    dance_hr = Q16_C1_R1 + Q16_C2_R1 + Q16_C3_R1 + Q16_C4_R1 + Q16_C5_R1 + Q16_C6_R1 + Q16_C7_R1 + Q16_C8_R1 + Q16_C9_R1 + Q16_C10_R1 + Q16_C11_R1 + Q16_C12_R1 + Q16_C13_R1 + Q16_C14_R1,
+    music_hr = Q16_C1_R2 + Q16_C2_R2 + Q16_C3_R2 + Q16_C4_R2 + Q16_C5_R2 + Q16_C6_R2 + Q16_C7_R2 + Q16_C8_R2 + Q16_C9_R2 + Q16_C10_R2 + Q16_C11_R2 + Q16_C12_R2 + Q16_C13_R2 + Q16_C14_R2,
+    thtr_hr = Q16_C1_R3 + Q16_C2_R3 + Q16_C3_R1 + Q16_C4_R1 + Q16_C5_R3 + Q16_C6_R3 + Q16_C7_R3 + Q16_C8_R3 + Q16_C9_R3 + Q16_C10_R3 + Q16_C11_R3 + Q16_C12_R3 + Q16_C13_R3 + Q16_C14_R1,
+    visart_hr = Q16_C1_R4 + Q16_C2_R4 + Q16_C3_R4 + Q16_C4_R4 + Q16_C5_R4 + Q16_C6_R4 + Q16_C7_R4 + Q16_C8_R4 + Q16_C9_R4 + Q16_C10_R4 + Q16_C11_R4 + Q16_C12_R4 + Q16_C13_R4 + Q16_C14_R4
+  ) %>% select(ends_with('_hr'))
+#Still end up with NAs
+
+#Extract boroughs
+df$boro <- df$Q0_DBN %>% str_extract('\\D')
+df$boro %>% unique()
+df <- df %>% mutate(
+  K = if_else(boro == 'K', 1, 0),
+  X = if_else(boro == 'X', 1, 0),
+  M = if_else(boro == 'M', 1, 0),
+  Q = if_else(boro == 'Q', 1, 0),
+  R = if_else(boro == 'R', 1, 0)
+  )
+df %>% select(perc_34_4_2018_ela, K, X, M, Q, R) %>% 
+  lm(perc_34_4_2018_ela~., data=.) %>% 
+  summary()
+#Bronx has a strong negative relation and Brooklyn a lesser negative relation. All other boroughs are not statistically significant.
+df %>% select(perc_34_4_2018_math, K, X, M, Q, R) %>% 
+  lm(perc_34_4_2018_math~., data=.) %>% 
+  summary()
+#Bronx has a strong negative correlation and no other borough has a statistically significant relation.
+
+#Look at relationship between demographics and arts resources.
