@@ -3,6 +3,8 @@ library(ggplot2)
 df <- read_csv('resources/arts_demo_ela_math.csv')
 df %>% head()
 
+#Q24-29 There is an extra columns without metadata
+
 #Get column names from the original datasets
 q_arts <- df %>% colnames() %>% .[grepl("^Q", .)]
 q_ela <- df %>% colnames() %>% .[grepl("ela$", .)]
@@ -238,3 +240,239 @@ df %>% select(perc_34_4_2018_math, K, X, M, Q, R) %>%
 #Bronx has a strong negative correlation and no other borough has a statistically significant relation.
 
 #Look at relationship between demographics and arts resources.
+#Q10 arts disciplines offered, but only for special education schools
+q10 <- df %>% colnames() %>% .[grepl('Q10_', .)] %>% .[grepl('_C1', .)]
+disc_5 <- c('Dance', 'Film', 'Music', 'Theater', 'Visual Arts')
+df %>% select(q10) %>% colSums()
+
+#Q2 do not have a designated arts education liaison
+df %>% select(Q2_1) %>% sum()
+boros <- c('K', 'X', 'M', 'Q', 'R')
+df %>% select(Q2_1, boros) %>% 
+  lm(Q2_1~., data=.) %>% summary()
+#Brooklyn and Manhattan schools have a statistically significant decreased chance of having an arts liaison
+
+#Q22 do you offer a full-year sequence in the arts (middle-school)
+q22 <- q_arts %>% .[grepl('Q22', .)] %>% .[grepl('C1', .)]
+df %>% select(q22) %>% colSums() %>% 
+  as_data_frame() %>% 
+  ggplot(aes(x=disc_5, y=value)) +
+  geom_bar(stat='identity')
+#Three-year sequences in visual arts and music and predominant. There are fewer dance and theater, and much fewer film programs.
+#Do schools with film sequences come have wealthier students?
+df <- df %>% 
+  mutate(Q22_R1_C1 = Q22_R1_C1 %>% as.logical(),
+         Q22_R2_C1 = Q22_R2_C1 %>% as.logical(),
+         Q22_R3_C1 = Q22_R3_C1 %>% as.logical(),
+         Q22_R4_C1 = Q22_R4_C1 %>% as.logical(),
+         Q22_R5_C1 = Q22_R5_C1 %>% as.logical())
+df %>% select(perc_pov_2017, q22) %>% 
+  ggplot(aes(x=perc_pov_2017)) +
+  geom_density(aes(color=Q22_R1_C1)) +
+  ggtitle('Dance programs')
+df %>% select(perc_pov_2017, q22) %>% 
+  ggplot(aes(x=perc_pov_2017)) +
+  geom_density(aes(color=Q22_R2_C1)) +
+  ggtitle('Film programs')
+df %>% select(perc_pov_2017, q22) %>% 
+  ggplot(aes(x=perc_pov_2017)) +
+  geom_density(aes(color=Q22_R3_C1)) +
+  ggtitle('Music programs')
+df %>% select(perc_pov_2017, q22) %>% 
+  ggplot(aes(x=perc_pov_2017)) +
+  geom_density(aes(color=Q22_R4_C1)) +
+  ggtitle('Theater programs')
+df %>% select(perc_pov_2017, q22) %>% 
+  ggplot(aes(x=perc_pov_2017)) +
+  geom_density(aes(color=Q22_R5_C1)) +
+  ggtitle('Visual Arts programs')
+#The difference for film programs stands out the most, but that is the discipline with the fewest programs.
+#Look at how poverty predicts the presence of an arts program:
+df %>%
+  glm(Q22_R1_C1~perc_pov_2017, data=., family='binomial') %>% 
+  summary()
+df %>%
+  glm(Q22_R2_C1~perc_pov_2017, data=., family='binomial') %>% 
+  summary()
+df %>%
+  glm(Q22_R3_C1~perc_pov_2017, data=., family='binomial') %>% 
+  summary()
+#Music programs are significantly negatively related to poverty of students.
+df %>%
+  glm(Q22_R4_C1~perc_pov_2017, data=., family='binomial') %>% 
+  summary()
+#Theater programs are significantly negatively related to poverty of students.
+df %>%
+  glm(Q22_R5_C1~perc_pov_2017, data=., family='binomial') %>% 
+  summary()
+#Visual arts programs are less significant but still negative.
+#Same models, but in a for loop
+for (i in q22) {
+  temp <- df %>% select(i, perc_pov_2017)
+  temp.glm <- glm(unlist(temp[,1])~unlist(temp[,2]), family='binomial')
+  print(i)
+  print(temp.glm %>% summary())
+}
+
+#Q23 number of students to complete a three-year sequence in the arts
+q23 <- q_arts %>% .[grepl('Q23', .)]
+df %>% select(q23) %>% colSums(na.rm = T) %>% 
+  as_data_frame() %>% 
+  ggplot(aes(x=disc_5, y=value)) +
+  geom_bar(stat='identity')
+#The number of students completing a three-year sequence is greates for visual arts and music. About the same number for dance and theater. Much less for film.
+for (i in q23) {
+  temp <- df %>% select(i, perc_pov_2017)
+  temp.lm <- lm(unlist(temp[,1])~unlist(temp[,2]))
+  print(i)
+  print(temp.lm %>% summary())
+}
+#Completing a film sequence has a * statistically significant negative relation with poverty. None of the other disciplines have a relation.
+
+#******** Only District 75 **********************
+#Q30 number of school-based arts teachers attending professional development
+q30 <- q_arts %>% .[grepl('Q30', .)]
+
+#Q31 hours of professional development for school-based arts teachers
+q31 <- q_arts %>% .[grepl('Q31', .)]
+
+#Q32 school-based arts teachers professional development offerings
+q32 <- q_arts %>% .[grepl('Q32', .)]
+
+#Q33 number of non-arts teachers attending professional development
+q33 <- q_arts %>% .[grepl('Q33', .)]
+
+#Q34 hours of professional development for non-arts teachers
+q34 <- q_arts %>% .[grepl('Q34', .)]
+
+#Q35 non-arts teachers professional development offerings
+q35 <- q_arts %>% .[grepl('Q35', .)]
+#******** End District 75 **********************
+
+#Q36 non-DOE arts funding
+q36 <- q_arts %>% .[grepl('Q36', .)] %>% .[grepl('C1', .)]
+fund_srcs <- c('Cultural organizations',
+               'Education association',
+               'Federal, state, or city grants',
+               'Local business or corporation',
+               'Private foundation',
+               'PTA/PA',
+               'State, county, local arts councils')
+df %>% select(q36) %>% colSums() %>% 
+  as_data_frame() %>% 
+  ggplot(aes(x=reorder(fund_srcs, -value), y=value)) +
+  geom_bar(stat='identity') +
+  coord_flip()
+#Government grants are the most common source of non-DOE funding, followed by cultural organizations, and PTA. Then arts councils, private foundations, educational associations and local business.
+#Does poverty predict the different sources of funding?
+for (i in q36) {
+  temp <- df %>% select(i, perc_pov_2017)
+  temp.glm <- glm(unlist(temp[,1])~unlist(temp[,2]), family='binomial')
+  print(i); print(summary(temp.glm))
+}
+#Not statistically significant: Cultural organizations, education associations, government grants, local business, private foundations.
+#PTA/PA is negatively associated with poverty at a *** sig. Local arts councils is similar but at a * sig. This could be picking up the effect of neighborhood wealth.
+
+#Q37 funding for the arts
+q37 <- q_arts %>% .[grepl('Q37', .)]
+df %>% select(q37) %>% colSums() %>% 
+  as_data_frame() %>% 
+  ggplot(aes(x=reorder(c('Abundant', 'Sufficient', 'Insufficient', 'N/A'), value),
+             y=value)) +
+  geom_bar(stat='identity')
+#Funding is lacking, who would'a thunk it
+
+#Q38 funding over the last three years
+q38 <- q_arts %>% .[grepl('Q38', .)]
+df %>% select(q38) %>% colSums() %>% 
+  as_data_frame() %>% 
+  ggplot(aes(x=factor(c('Increased', 'Decreased', 'Remained the same'), levels=c('Increased', 'Remained the same', 'Decreased')),
+             y=value)) +
+  geom_bar(stat='identity')
+#More schools experienced decreased funding than increased funding over the last three years.
+#Code q37 and 38 as categorical and look at a mosaic plot.
+
+#Q39 parental involvement
+q39 <- q_arts %>% .[grepl('Q39', .)]
+par_inv <- c('Attending school arts events',
+             'Volunteering in arts programs',
+             'Donating arts materials',
+             'Other')
+df %>% select(Q39_4, Q0_DBN) %>% 
+  group_by(Q39_4) %>% count()
+#It could be neat to analyze the 'Other' category.
+#For now I'll move the comments over and replace them with 1s.
+df <- df %>% 
+  mutate(Q39_Other = ifelse(Q39_4 == 0, 0, Q39_4),
+         Q39_4 = ifelse(Q39_4 == 0, 0, 1))
+df %>% select(q39) %>% colSums() %>% 
+  as_data_frame() %>% 
+  ggplot(aes(x=reorder(par_inv, -value), y=value)) +
+  geom_bar(stat='identity') +
+  coord_flip()
+#Parental participation is most common through attending school events, to be expected. Fewer parents volunteer or donate art materials.
+#Is there a relationship between poverty and volunteering in arts programs, Q39_2?
+df %>% select(perc_pov_2017, Q39_2) %>% 
+  glm(Q39_2~perc_pov_2017, data=., family='binomial') %>% 
+  summary()
+#There is a strong negative relation between poverty and parental volunteers in arts programs.
+#Is there a relationship between poverty and donating arts materials, Q39_3?
+df %>% select(perc_pov_2017, Q39_3) %>% 
+  glm(Q39_3~perc_pov_2017, data=., family='binomial') %>% 
+  summary()
+#There is a strong negative relation.
+
+#Q40 arts opportunities at the school and outside of school
+q40 <- q_arts %>% .[grepl('Q40', .)]
+arts_opp <- c('Artwork exhibits',
+              'Concerts',
+              'Dance performances',
+              'Films',
+              'Theater performances',
+              'Other')
+q40_school <- q40 %>% .[grepl('C1', .)]
+q40_outside <- q40 %>% .[grepl('C2', .)]
+df %>% select(q40_school) %>% colSums(na.rm = T) %>% 
+  as_data_frame() %>% 
+  ggplot(aes(x=reorder(arts_opp, -value), y=value)) +
+  geom_bar(stat='identity') + coord_flip()
+#At school, concerts, dance, theater performances and art exhibits are of decreasing frequency. Films are shown less frequently.
+df %>% select(q40_outside) %>% colSums(na.rm = T) %>% 
+  as_data_frame() %>% 
+  ggplot(aes(x=reorder(arts_opp, -value), y=value)) +
+  geom_bar(stat='identity') + coord_flip()
+#Outside of school, theater performances and art exhibits are most frequent. Concerts, dance performances and films are less frequent.
+
+#Q41 does your school have an artist in residence
+q41 <- q_arts %>% .[grepl('Q41', .)]
+
+#Q42 artist in residence program discipline
+q42 <- q_arts %>% .[grepl('Q42', .)]
+
+#Q43 greatest obstacle to an artist in residence program
+q43 <- q_arts %>% .[grepl('Q43', .)]
+
+#Q44 arts education providers, schools could add vendors but I only have one row
+#C1 Name of organization
+#C2 Name if C1 == 'Other'
+#C3 Arts discipline
+#C4 Type of service
+#C5 Rating for quality of service (1 low - 5 high)
+#C6 Number of students provided with service
+#C7 Contact hours provided
+#C8 Do you plan to engage the organization next year?
+#C9 If no, why not
+#C10 If C9 == 'Other', specify
+q44 <- q_arts %>% .[grepl('Q44', .)]
+
+#Q45 how/will teachers assess student progress in the arts
+q45 <- q_arts %>% .[grepl('Q45_', .)]
+
+#Questions with text answers 46-48
+q_text <- q_arts %>% tail(5)
+df %>% select(q_text)
+#Q46 arts program description
+#Q47 contextual information about the school and students
+#Q48 name, title and email of the person completing the survey
+
+#Can I create models for arts program metrics from demographics and performance and generate hypothetical data to illustrate the differences brought about by student backgrounds.
