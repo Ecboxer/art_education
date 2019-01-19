@@ -3,7 +3,7 @@ library(ggplot2)
 df <- read_csv('resources/arts_demo_ela_math.csv')
 df %>% head()
 
-#Q24-29 There is an extra columns without metadata
+#Q1 do people use non-DOE email
 
 #Get column names from the original datasets
 q_arts <- df %>% colnames() %>% .[grepl("^Q", .)]
@@ -15,17 +15,7 @@ q_demo <- df %>% colnames() %>% setdiff(union(q_arts, union(q_ela, q_math)))
 perc_34_ela <- q_ela %>% .[grepl("^perc_34", .)]
 perc_34_math <- q_math %>% .[grepl("^perc_34", .)]
 
-#Q3 arts supervisor
-q3 <- q_arts %>% .[grepl("^Q3_", .)]
-df %>% select(q3) %>% sapply(function(x) sum(is.na(x)))
-#No missing values
-
-df %>% select(q3) %>%
-  colSums() %>% as_data_frame() %>%
-  ggplot(aes(x=q3, y=value)) +
-  geom_bar(stat = 'identity')
-#Many full-time supervisors with duties other than arts
-#Get percent passing for all grades in 2018
+#Get percent passing for all grades in 2018.
 perc_34_all_2018 <- union(perc_34_ela, perc_34_math) %>%
   .[grepl("All Grades_2018", .)]
 df %>% select(perc_34_all_2018) %>% is.na() %>% colSums()
@@ -34,6 +24,20 @@ df %>% select(perc_34_all_2018) %>% is.na() %>% colSums()
 perc_34_4_2018 <- union(perc_34_ela, perc_34_math) %>% 
   .[grepl("4_2018", .)]
 df %>% select(perc_34_4_2018) %>% is.na() %>% colSums()
+
+#Q3 arts supervisor
+q3 <- q_arts %>% .[grepl("^Q3_", .)]
+df %>% select(q3) %>% sapply(function(x) sum(is.na(x)))
+#No missing values
+superv_status <- factor(c('FT, solely arts', 'FT, other', 'PT', 'None'),
+                          levels=c('FT, solely arts', 'FT, other', 'PT', 'None'))
+df %>% select(q3) %>%
+  colSums() %>% as_data_frame() %>%
+  ggplot(aes(x=superv_status, y=value)) +
+  geom_bar(stat = 'identity')
+#Many full-time supervisors with duties other than arts.
+#There are very few part-time supervisors.
+
 #Schools will be missing data if they do not teach that grade!
 df$Q3 <- with(df, ifelse(Q3_1 == 1, '1',
                 ifelse(Q3_2 == 1, '2',
@@ -42,44 +46,76 @@ df$Q3 <- with(df, ifelse(Q3_1 == 1, '1',
 df$Q3 <- df$Q3 %>% factor(levels=seq(0,4))
 df %>% filter(Q3 == '0') %>% count()
 #Two schools did not respond to Q3
-df %>% select(perc_34_all_2018, Q3) %>% 
-  filter(!is.na(`perc_34_All Grades_2018_ela`)) %>%
-  filter(Q3 != 0) %>% 
-  ggplot(aes(`perc_34_All Grades_2018_ela`, color=Q3)) +
-  geom_density()
-df %>% select(perc_34_all_2018, Q3) %>% 
-  filter(!is.na(`perc_34_All Grades_2018_ela`)) %>%
-  filter(Q3 != 0) %>% 
-  ggplot(aes(`perc_34_All Grades_2018_ela`)) +
-  geom_histogram() + facet_wrap(vars(Q3))
-#Do not see any particular trends
-#Look at the scatter plot of ELA and math scores
-#Rename columns of interest
+
+#Rename columns of interest.
 temp <- c('perc_34_all_2018_ela', 'perc_34_all_2018_math')
 colnames(df)[colnames(df) %in% perc_34_all_2018] <- temp
 perc_34_all_2018 <- temp
+
+df %>% select(perc_34_all_2018, Q3) %>% 
+  filter(!is.na(perc_34_all_2018_ela)) %>%
+  filter(Q3 != 0) %>% 
+  ggplot(aes(perc_34_all_2018_ela, color=Q3)) +
+  geom_density()
+df %>% select(perc_34_all_2018, Q3) %>% 
+  filter(!is.na(perc_34_all_2018_ela)) %>%
+  filter(Q3 != 0) %>% 
+  ggplot(aes(perc_34_all_2018_ela)) +
+  geom_histogram() + facet_wrap(vars(Q3))
+#Do not see any particular trends.
+#Look at the scatter plot of ELA and math scores.
 
 df %>% select(perc_34_all_2018, Q3) %>%
   filter(!is.na(perc_34_all_2018_ela)) %>% 
   filter(Q3 != 0) %>% 
   ggplot(aes(x=perc_34_all_2018_ela, y=perc_34_all_2018_math)) +
   geom_point() + facet_wrap(vars(Q3))
-#All schools have a positive relationship between ELA and math scores
-#There is no particular relationship between passing and Q3
+#All schools have a positive relationship between ELA and math scores.
+#There is no particular relationship between passing and Q3.
 
-#Q4 is the arts supervisor certified in an arts discipline
+#Does poverty have any relation with supervisor status?
+df %>% select(q3, perc_pov_2017) %>% 
+  lm(perc_pov_2017~., data=.) %>% 
+  summary()
+#No statistically significant coefficients.
+
+#Q4 is the arts supervisor certified in an arts discipline?
 df %>% filter(Q3_4 == 0) %>% select(Q4_1, Q4_2) %>%
   colSums() %>% as_data_frame() %>% 
   ggplot(aes(x=c('Q4_1', 'Q4_2'), y=value)) +
   geom_bar(stat = 'identity')
 #Most supervisors are not certified in an arts discipline
+(q_demo_2017 <- q_demo %>% .[grepl('2017', .)])
+#Remove year and school
+q_demo_2017 <- q_demo_2017[c(-1, -2)]
+df$eni_2017 <- df$eni_2017 %>%
+  sub('%', '', x=.) %>%
+  as.numeric()
+#Is this related with some demographic data?
+q4_demo_results <- list()
+for (i in q_demo_2017) {
+  temp.glm <- df %>% select(Q4_1, i) %>% 
+    glm(Q4_1~., data=., family='binomial') %>% 
+    summary()
+  if (temp.glm$coefficients[2,4] < 0.05) {
+    q4_demo_results[i] <- temp.glm$coefficients[2,4]
+  }
+}
+q4_demo_results
+#Statistically significant relations with: grd_k to grd_5 and grd_9 to grd_12 and perc_male and perc_female.
+#So certification in the arts is related to number of students.
+#Which relation with gender is positive?
+df %>%
+  glm(Q4_1~perc_male_2017, data=., family='binomial') %>% 
+  summary()
+#There is a negative relation with percentage of male students and having an arts supervisor certified in the arts.
 
 #Q5 is the arts supervisor certified as an administrator
 df %>% filter(Q3_4 == 0) %>% select(Q5_1, Q5_2) %>% 
   colSums() %>% as_data_frame() %>% 
   ggplot(aes(x=c('Q5_1', 'Q5_2'), y=value)) +
   geom_bar(stat = 'identity')
-#Most supervisors are certified in an arts discipline
+#Most supervisors are certified in administration.
 
 #Intersection of Q4 and 5
 df %>% filter(Q3_4 == 0) %>% select(Q4_1, Q4_2, Q5_1, Q5_2) %>% 
@@ -445,9 +481,26 @@ df %>% select(q40_outside) %>% colSums(na.rm = T) %>%
 
 #Q41 does your school have an artist in residence
 q41 <- q_arts %>% .[grepl('Q41', .)]
+df %>% select(Q41_1) %>% sum()
+#There are 462 artist-in-residence programs
+#Is poverty a good predictor?
+df %>% 
+  glm(Q41_1~perc_pov_2017, family='binomial', data=.) %>% 
+  summary()
+#No, there is not a statistically significant coefficient.
+#Are boroughs a good predictor?
+df %>% select(boros, Q41_1) %>% 
+  glm(Q41_1~., family='binomial', data=.) %>% 
+  summary()
+#No borough has a statistically significant coefficient.
 
 #Q42 artist in residence program discipline
 q42 <- q_arts %>% .[grepl('Q42', .)]
+df %>% select(q42) %>% colSums() %>% 
+  as_data_frame() %>% 
+  ggplot(aes(x=disc_4, y=value)) +
+  geom_bar(stat='identity')
+#Artist-in-residence programs are evenly-distributed across disciplines, excluding film.
 
 #Q43 greatest obstacle to an artist in residence program
 q43 <- q_arts %>% .[grepl('Q43', .)]
@@ -464,6 +517,7 @@ q43 <- q_arts %>% .[grepl('Q43', .)]
 #C9 If no, why not
 #C10 If C9 == 'Other', specify
 q44 <- q_arts %>% .[grepl('Q44', .)]
+df %>% select(q44)
 
 #Q45 how/will teachers assess student progress in the arts
 q45 <- q_arts %>% .[grepl('Q45_', .)]
@@ -476,3 +530,14 @@ df %>% select(q_text)
 #Q48 name, title and email of the person completing the survey
 
 #Can I create models for arts program metrics from demographics and performance and generate hypothetical data to illustrate the differences brought about by student backgrounds.
+
+df %>% select(q3) %>%
+  colSums() %>% as_data_frame() %>%
+  ggplot(aes(x=superv_status, y=value)) +
+  geom_bar(stat = 'identity') +
+  theme_eric()
+
+theme_eric <- function() {
+  theme_bw(base_size = 11,
+           base_family = 'URWHelvetica')
+}
