@@ -247,13 +247,13 @@ q18 <- df %>% colnames() %>% .[grepl('Q18_', .)]
 
 #Q16 arts instructional hours for fourth-grade
 q16 <- df %>% colnames() %>% .[grepl('Q16_', .)]
-df %>% select(q16) %>%
+df %>% dplyr::select(q16) %>%
   mutate(
     dance_hr = Q16_C1_R1 + Q16_C2_R1 + Q16_C3_R1 + Q16_C4_R1 + Q16_C5_R1 + Q16_C6_R1 + Q16_C7_R1 + Q16_C8_R1 + Q16_C9_R1 + Q16_C10_R1 + Q16_C11_R1 + Q16_C12_R1 + Q16_C13_R1 + Q16_C14_R1,
     music_hr = Q16_C1_R2 + Q16_C2_R2 + Q16_C3_R2 + Q16_C4_R2 + Q16_C5_R2 + Q16_C6_R2 + Q16_C7_R2 + Q16_C8_R2 + Q16_C9_R2 + Q16_C10_R2 + Q16_C11_R2 + Q16_C12_R2 + Q16_C13_R2 + Q16_C14_R2,
     thtr_hr = Q16_C1_R3 + Q16_C2_R3 + Q16_C3_R1 + Q16_C4_R1 + Q16_C5_R3 + Q16_C6_R3 + Q16_C7_R3 + Q16_C8_R3 + Q16_C9_R3 + Q16_C10_R3 + Q16_C11_R3 + Q16_C12_R3 + Q16_C13_R3 + Q16_C14_R1,
     visart_hr = Q16_C1_R4 + Q16_C2_R4 + Q16_C3_R4 + Q16_C4_R4 + Q16_C5_R4 + Q16_C6_R4 + Q16_C7_R4 + Q16_C8_R4 + Q16_C9_R4 + Q16_C10_R4 + Q16_C11_R4 + Q16_C12_R4 + Q16_C13_R4 + Q16_C14_R4
-  ) %>% select(ends_with('_hr'))
+  ) %>% dplyr::select(ends_with('_hr'))
 #Still end up with NAs
 
 #Extract boroughs
@@ -537,7 +537,32 @@ df %>% select(q3) %>%
   geom_bar(stat = 'identity') +
   theme_eric()
 
-theme_eric <- function() {
-  theme_bw(base_size = 11,
-           base_family = 'URWHelvetica')
+theme_eric <- function(base_size = 11,
+                      base_family = 'URWHelvetica',
+                      base_line_size = base_size / 170,
+                      base_rect_size = base_size / 170){
+  theme_bw(base_size = base_size, 
+                base_family = base_family,
+                base_line_size = base_line_size) %+replace%
+    theme(
+      plot.title = element_text(
+        color = rgb(25, 43, 65, maxColorValue = 255), 
+        face = "bold",
+        hjust = 0),
+      axis.title = element_text(
+        color = rgb(105, 105, 105, maxColorValue = 255),
+        size = rel(0.75)),
+      axis.text = element_text(
+        color = rgb(105, 105, 105, maxColorValue = 255),
+        size = rel(0.5)),
+      panel.grid.major = element_line(
+        rgb(105, 105, 105, maxColorValue = 255),
+        linetype = "dotted"),   
+      panel.grid.minor = element_line(
+        rgb(105, 105, 105, maxColorValue = 255),
+        linetype = "dotted", 
+        size = rel(4)),   
+      
+      complete = TRUE
+    )
 }
