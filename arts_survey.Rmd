@@ -8,25 +8,60 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE,
-                      cach = TRUE,
+                      cache = TRUE,
                       warning = FALSE,
                       message = FALSE)
-theme_eric <- function() {
-  theme_bw(base_size = 11,
-           base_family = 'URWHelvetica')
-}
 ```
 
-### NYC Schools Arts Survey Data
-The [2017-2018 Arts Survey Data](https://data.cityofnewyork.us/Education/2017-2018-Arts-Survey-Data/475h-cg5t) includes data about arts teachers, budgets, partnerships with cultural organizations and parental involvement in arts education. I will examine the arts data in conjuction with [ELA and Math standardized test results](https://infohub.nyced.org/reports-and-policies/citywide-information-and-data/test-results) and [demographic data](https://data.cityofnewyork.us/Education/2013-2018-Demographic-Snapshot-School/s52a-8aq6).  
+## NYC Schools Arts Survey Data
+The [2017-2018 Arts Survey Data](https://data.cityofnewyork.us/Education/2017-2018-Arts-Survey-Data/475h-cg5t) has data about arts teachers, budgets, partnerships with cultural organizations and parental involvement in NYC public schools.  
+
+In an effort to gain greater context for this data, we can examine it in conjuction with publicly available [ELA and Math state test results](https://infohub.nyced.org/reports-and-policies/citywide-information-and-data/test-results) and [demographic data](https://data.cityofnewyork.us/Education/2013-2018-Demographic-Snapshot-School/s52a-8aq6).  
+
+My goals were to understand the state of arts programs in NYC schools, what variables affect the resources of arts programs, and whether arts programs have an effect on the academic performance of students.  
 
 ```{r load data}
+library(dagitty)
 library(ggplot2)
 library(ggpubr)
 library(ggridges)
 library(MatchIt)
 library(tidyverse)
 df <- read_csv('resources/arts_demo_ela_math.csv')
+theme_eric <- function(base_size = 11,
+                      base_family = 'URWHelvetica',
+                      base_line_size = base_size / 170,
+                      base_rect_size = base_size / 170){
+  theme_bw(base_size = base_size, 
+                base_family = base_family,
+                base_line_size = base_line_size) %+replace%
+    theme(
+      plot.title = element_text(
+        color = rgb(25, 43, 65, maxColorValue = 255), 
+        face = "bold",
+        hjust = 0),
+      axis.title = element_text(
+        color = rgb(105, 105, 105, maxColorValue = 255),
+        size = rel(0.75)),
+      axis.text = element_text(
+        color = rgb(105, 105, 105, maxColorValue = 255),
+        size = rel(0.5)),
+      panel.grid.major = element_line(
+        rgb(105, 105, 105, maxColorValue = 255),
+        linetype = "dotted"),   
+      panel.grid.minor = element_line(
+        rgb(105, 105, 105, maxColorValue = 255),
+        linetype = "dotted", 
+        size = rel(4)),
+      
+      complete = TRUE
+    )
+}
+theme_set(theme_eric())
+cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+c1 <- '#000044'
+c4 <- c('#222222', '#555555', '#888888', '#BBBBBB')
+c5 <- c('#222222', '#444444', '#666666', '#888888', '#AAAAAA')
 ```
 
 ```{r q names}
@@ -57,12 +92,6 @@ df %>% dplyr::select(perc_34_4_2018) %>% is.na() %>% colSums()
 temp <- c('perc_34_all_2018_ela', 'perc_34_all_2018_math')
 colnames(df)[colnames(df) %in% perc_34_all_2018] <- temp
 perc_34_all_2018 <- temp
-
-#Add 0,1 performance metric
-df %>% dplyr::select(perc_34_all_2018) %>% summary()
-#Choose 60% as cutoff for "good" performance, 3rd Quartile
-df$good_all_2018_ela <- with(df, ifelse(perc_34_all_2018_ela > 60, 1, 0))
-df$good_all_2018_math <- with(df, ifelse(perc_34_all_2018_math > 60, 1, 0))
 ```
 
 ```{r q3 missing, results = 'hide'}
@@ -72,37 +101,51 @@ df %>% dplyr::select(q3) %>% sapply(function(x) sum(is.na(x)))
 ```
 
 ```{r q2 no designated supervisor, results = 'hide'}
+df$Q2_1 %>% sum()
 df$Q2_1 %>% mean()
 ```
 
-### Data Provenance
-The NYC Department of Education (DOE) has released an annual arts survey report for several years. In 2018, 1265 schools were surveyed. In an effort to put these schools into context, the English Language Arts (ELA) and Math State Tests were sought in an effort to capture academic performance. Demographic data was sought to capture racial diversity and family socioeconomic status in schools.  
-After separate csv files were downloaded for each source, I changed performance and demographic data into wide format and merged them with the arts survey data on school District Borough Number (DBN).  
-
-To begin the survey, schools are asked whether they have a designated arts supervisor. 5.6% of schools have no arts supervisor. My first question is whether there is any relation between the presence of an arts supervisor and the demographics of the student population.
+### Arts Education Liaison
+In 2018, 1265 schools were surveyed. Schools were asked whether they have a designated arts supervisor. 5.6%, 72 schools, had no arts supervisor. My first question has to do with whether there is any relation between the presence of an arts supervisor and the demographics of the student population.
 
 ```{r supervisor and demos}
 df$Q2_factor <- df$Q2_1 %>% as.factor()
 g1 <- df %>% dplyr::select(Q2_factor, total_enrollment_2017) %>% 
   ggplot(aes(x = total_enrollment_2017,
-             fill = Q2_factor)) +
-  geom_histogram(alpha = .2, stat = 'density', position = 'identity') + 
-  theme_eric()
+             color = Q2_factor,
+             stat(density))) +
+  geom_freqpoly(alpha = .5, size = 1) +
+  scale_color_manual(values = c4[c(1,3)],
+                    labels = c('No', 'Yes'),
+                    name = 'Arts Supervisor?') +
+  ylab('') + xlab('Total Enrollment')
 g2 <- df %>% dplyr::select(Q2_factor, perc_pov_2017) %>% 
   ggplot(aes(x = perc_pov_2017,
-             fill = Q2_factor)) +
-  geom_histogram(alpha = .2, stat = 'density', position = 'identity') +
-  theme_eric()
+             color = Q2_factor,
+             stat(density))) +
+  geom_freqpoly(alpha = .5, size = 1) +
+  scale_color_manual(values = c4[c(1,3)],
+                    labels = c('No', 'Yes'),
+                    name = 'Arts Supervisor?') +
+  ylab('') + xlab('Student Poverty (%)')
 g3 <- df %>% dplyr::select(Q2_factor, perc_female_2017) %>% 
   ggplot(aes(x = perc_female_2017,
-             fill = Q2_factor)) +
-  geom_histogram(alpha = .2, stat = 'density', position = 'identity') +
-  theme_eric()
+             color = Q2_factor,
+             stat(density))) +
+  geom_freqpoly(alpha = .5, size = 1) +
+  scale_color_manual(values = c4[c(1,3)],
+                    labels = c('No', 'Yes'),
+                    name = 'Arts Supervisor?') +
+  ylab('') + xlab('Female Students (%)')
 g4 <- df %>% dplyr::select(Q2_factor, perc_black_2017) %>% 
   ggplot(aes(x = perc_black_2017,
-             fill = Q2_factor)) +
-  geom_histogram(alpha = .2, stat = 'density', position = 'identity') +
-  theme_eric()
+             color = Q2_factor,
+             stat(density))) +
+  geom_freqpoly(alpha = .5, size = 1) +
+  scale_color_manual(values = c4[c(1,3)],
+                    labels = c('No', 'Yes'),
+                    name = 'Arts Supervisor?') +
+  ylab('') + xlab('Black Students (%)')
 figure <- ggarrange(g1, g2, g3, g4,
                     labels = c('1', '2', '3', '4'),
                     ncol = 2,
@@ -110,22 +153,37 @@ figure <- ggarrange(g1, g2, g3, g4,
 figure
 ```
 
-Schools without a designated arts supervisor appear to have smaller student populations, more impoverished students, and more black students than those with supervisors. Ther edoes not appear to be a relatnionship between share student gender and having an arts supervisor, most schools have gender splits close to 50-50 so a small difference would be hard to detect in that graph.
+Schools without a designated arts supervisor appear to have more black students than those with supervisors (Fig 4). There appear to be several schools withan arts supervisor and very high poverty, but there is no clear relation (Fig 2). I also do not see a significant relation between total enrollment (Fig 1) or student gender ratio (Fig 3) and having an arts supervisor. Most schools have about 500 students and gender splits close to 50-50 so a small difference would be hard to detect in these graphs.  
+
+In order to assess the significance of the differences pointed we see above, we can try to fit a logistic regression to the relationship between each variable and the binary response "Does the school have an an arts supervisor?"
 
 ```{r supervisor and demos stats, results = 'hide'}
 demos <- c('total_enrollment_2017', 'perc_pov_2017', 'perc_female_2017', 'perc_black_2017')
+rel_risk = list()
 for (i in demos) {
   temp <- df %>% dplyr::select(Q2_1, i) %>% 
     glm(Q2_1~., data=., family='binomial')
   print(i)
   print(temp %>% summary())
   print(temp %>% confint.default())
+  
+  c.int <- temp$coefficients[1]
+  c.i <- temp$coefficients[2]
+  control <- exp(c.int) / (1 + exp(c.int))
+  rel_risk[i] <- exp(c.i) / (1 - control + (control * exp(c.i)))
 }
 ```
 
-I ran a logistic regression on the relationship between the above demographic features and school responses to the question. The coefficient for total enrollment is negative with a p-value below a significance level of 0.001. Percentages of impoverished and black students have positive coefficients with p-values below a significance level of 0.01. As we had drawn from the graphs, there was no significant relation between gender and whether a school had an arts supervisor.
+These regressions lend support to the differences spotted in the plots of student poverty and race, but the most statistically significant coefficient comes from total enrollment. The coefficient for total enrollment is negative with a p-value below a significance level of 0.001. Percentages of impoverished and black students have positive coefficients with p-values below a significance level of 0.01. As we had assumed from the graphs, there was no significant relation between gender and whether a school had an arts supervisor.  
+In order to better interpret these results I converted the standard R logistic regression coefficients into relative risk, [as seen here](https://www.bmj.com/content/348/bmj.f7450.full?ijkey=NHT1YVsoX1RCm8r&keytype=ref).
 
-```{r supervisor and demos all}
+```{r supervisor rel risk}
+rel_risk[c(1, 2, 4)]
+```
+
+An increase in total enrollment of one student is associated with a .25% decrease in the likelihood that a school has an arts supervisor. An increase of one percentage point in student poverty and in share of black students is associated with 2.13% and 1.26% increases, respectively, in the likelihood that a school has an arts supervisor.
+
+```{r supervisor and demos all, results='hide'}
 df %>% dplyr::select(Q2_1, demos) %>% dplyr::select(-perc_female_2017) %>% 
   glm(Q2_1~., data=., family='binomial') %>% 
   summary()
@@ -134,10 +192,51 @@ df %>% dplyr::select(demos) %>% dplyr::select(-perc_female_2017) %>%
   summary()
 ```
 
-Consider the possibility that there is confounding between these variables, ie small schools tend to serve poor, mostly black student populations. To address this possibility, a logistic regression upon all three significant features reveals only one significant feature when used in concert, total enrollment. To further investigate this confounding I ran a linear model for total enrollment on percentage of impoverished and black students. As suspected, both had negative relationships with total enrollment. In particular, with a p-value less than significance level 0.001, each additional percentage point of black students was associated with a decrease of 5.22 students.  
-To relate this to my experience of NYC schools, let me tell you about a high school in my old neighborhood of Canarsie in Brooklyn. Previously known as South Shore High School, it served thousands of poor, minority students. In 2010, the school was converted to the [South Shore Educational Complex](https://insideschools.org/school/18K515) and houses five smaller high schools. While a naive observer might expect that small schools have higher faculty:student ratios and more resources to expend on their students, the policies of the NYC DOE have led to the exact opposite.
+Consider the possibility that there is confounding between these variables, ie. small schools tend to serve poor, mostly black student populations. To address this possibility I ran a logistic regression upon total enrollment, student poverty and share of black students. This yielded only one significant feature, total enrollment, supporting some sort of statistical interdependence between the variables.  
+Let S denote school art supervisor, E enrollment, P poverty and B black students.
 
-My second question is whether there is any relation between having an arts supervisor and student academic performance.
+```{r cg supervisor}
+g <- dagitty('dag {
+    S [pos="0,1"]
+    E [pos="1,2"]
+    P [pos="2,1"]
+    B [pos="1,0"]
+    
+    E -> S
+    P -> S
+    B -> S
+    P -> E
+    B -> E
+    B <-> P
+}')
+plot(g)
+```
+
+To further investigate confounding, I ran a linear model for total enrollment on percentage of impoverished and black students. As suspected, both had negative relationships with total enrollment. In particular, with a p-value less than significance level 0.001, each additional percentage point of black students was associated with a decrease of 5.22 students.  
+
+As a former NYC public school student this coincides with my experience of the school system. In my old neighborhood of Canarsie in Brooklyn was a school previously known as South Shore High School. It served thousands of poor, majority minority students. In 2010, the school was converted into the [South Shore Educational Complex](https://insideschools.org/school/18K515) and now houses five smaller high schools. A naive observer could be expected to assume that small schools have higher faculty:student ratios and more resources to expend on their students. In reality the policies of the NYC DOE have led to the exact opposite, with underperforming schools split up without necessarily being given the resources to turn around their performance.  
+
+My second question is whether there is any relation between having an arts supervisor and student academic performance.  
+```{r supervisor performance}
+df %>% select(perc_34_all_2018_ela, Q2_1) %>% 
+  lm(perc_34_all_2018_ela~., data=.) %>%
+  summary()
+df %>% select(perc_34_all_2018_ela, Q2_1, perc_pov_2017, perc_black_2017, total_enrollment_2017) %>% 
+  lm(perc_34_all_2018_ela~., data=.) %>%
+  summary()
+df %>% select(perc_34_all_2018_math, Q2_1) %>% 
+  lm(perc_34_all_2018_math~., data=.) %>%
+  summary()
+df %>% select(perc_34_all_2018_math, Q2_1, perc_pov_2017, perc_black_2017, total_enrollment_2017) %>% 
+  lm(perc_34_all_2018_math~., data=.) %>%
+  summary()
+```
+
+To measure academic performance, we can use the percentage of students to receive a 3 or 4 on state standardized tests (grades corresponding to at or above expectations), denoted `perc_34`. If we consider the relationship between having an arts supervisor and academic performance, then we see an 11 and 14 point decrease in English Language Arts (ELA) and math, respectively, at a significance level less than 0.001.  
+However, considering the causal relationship above, we can introduce context by conditioning on student poverty, share of black students, and total enrollment. In this case we do not have any statistically significant relation with ELA scores and a four point decrease in math scores, but at a 0.04 significance level.  
+
+Next time, I will continue going through the survey. The presence of an arts supervisor does not necessarily equate to a well-resourced and efficacious arts program, so I hope to find some interesting questions.
+
 
 ```{r q3 bar}
 superv_status <- factor(c('FT, solely arts', 'FT, other', 'PT', 'None'),
@@ -146,8 +245,7 @@ superv_status <- factor(c('FT, solely arts', 'FT, other', 'PT', 'None'),
 df %>% dplyr::select(q3) %>%
   colSums() %>% as_data_frame() %>%
   ggplot(aes(x=superv_status, y=value)) +
-  geom_bar(stat = 'identity') +
-  theme_eric()
+  geom_bar(stat = 'identity')
 ```
 
 There are many full-time supervisors with duties other than the arts. There are very few part-time supervisors of those working full-time and solely dedicated to the arts.
@@ -186,8 +284,7 @@ df %>% dplyr::select(Q0_DBN, supervisor_cert) %>%
   group_by(supervisor_cert) %>% 
   count() %>% 
   ggplot(aes(x=supervisor_cert, y=n)) +
-  geom_bar(stat='identity') +
-  theme_eric()
+  geom_bar(stat='identity')
 ```
 
 Few supervisors are certified in the arts, the majority are administrators. Could this have an impact on the efficacy of an arts program?
@@ -526,3 +623,6 @@ temp <- df %>%
   dplyr::select(q9, good_all_2018_ela) %>%
   filter(!is.na(good_all_2018_ela))
 ```
+
+### Data Provenance
+The NYC Department of Education (DOE) has released an annual arts survey report for several years. After separate csv files were downloaded for each source, I changed performance and demographic data into wide format and merged them with the arts survey data on school District Borough Number (DBN).  
