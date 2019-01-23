@@ -237,18 +237,28 @@ However, considering the causal relationship above, we can introduce context by 
 
 Next time, I will continue going through the survey. The presence of an arts supervisor does not necessarily equate to a well-resourced and efficacious arts program, so I hope to find some interesting questions.
 
+===========================
+
+### Arts Supervisors
+
+Schools were asked whether their arts supervisor was employed full- or part-time, and if the supervisor was full-time whether they were solely working on arts programs or had other responsibilities.  
+In small schools, or under-resourced ones, faculty may be expected to wear many hats. The simplest examples are physical education teachers leading gym classes and health classes. More extreme cases can have teachers with certification in, for example, English teaching students in math or science classes. I will not assume that an arts supervisor *must* be employed full-time to run an effective program, but I am curious as to what features predict their employment status.
 
 ```{r q3 bar}
-superv_status <- factor(c('FT, solely arts', 'FT, other', 'PT', 'None'),
-                          levels=c('FT, solely arts', 'FT, other', 'PT', 'None'))
+superv_status <- factor(c('Full-time, solely for arts', 'Full-time, with other duties', 'Part-time', 'None'),
+                          levels=c('Full-time, solely for arts', 'Full-time, with other duties', 'Part-time', 'None'))
 
 df %>% dplyr::select(q3) %>%
   colSums() %>% as_data_frame() %>%
   ggplot(aes(x=superv_status, y=value)) +
-  geom_bar(stat = 'identity')
+  geom_bar(stat = 'identity') +
+  ggtitle('Arts Supervisor Employment Status') +
+  xlab('Employment Status') + ylab('Frequency') +
+  theme(text = element_text(size=20),
+        axis.text.x = element_text(size=8))
 ```
 
-There are many full-time supervisors with duties other than the arts. There are very few part-time supervisors of those working full-time and solely dedicated to the arts.
+There are many full-time supervisors with duties other than the arts. I would be curious to discover the share of their responsibilities that are considered "other". It is possible that some administrators consider teaching an arts class or doing clerical work to be "other". Relative to the number of supervisors working full-time, there are few part-timers.  
 
 ```{r missing q3, results = 'hide'}
 df$Q3 <- with(df, ifelse(Q3_1 == 1, '1',
@@ -260,31 +270,116 @@ df %>% filter(Q3 == '0') %>% count()
 #Two schools did not respond to Q3
 ```
 
+Only two schools did not respond to this question about their arts supervisor's status. In the previous part, I looked at a question that asked whether a school had a designated arts liaison. 72 schools responded that they did not, while 296 schools do not have any arts supervisor. I wonder whether the presence of an arts supervisor is more or less influential in student academic performance, compared to an arts liaison.
+
+To begin exploring academic performance, I will use the percentage of students to perform at or above standards for English Language Arts (ELA) and math.
+
 ```{r math and ela scores}
 df %>% dplyr::select(perc_34_all_2018, Q3) %>%
   filter(!is.na(perc_34_all_2018_ela)) %>% 
   filter(Q3 != 0) %>% 
+  mutate(Q3 = factor(ifelse(Q3 == 1, 'Full-time, solely for arts',
+                            ifelse(Q3 == 2, 'Full-time, with other duties',
+                                   ifelse(Q3 == 3, 'Part-time', 'None'))))) %>% 
   ggplot(aes(x=perc_34_all_2018_ela, y=perc_34_all_2018_math)) +
-  geom_point() + facet_wrap(vars(Q3))
+  geom_point(alpha = .9) + facet_wrap(~Q3,
+                            labeller = label_value) +
+  ggtitle('Academic Performance, by Supervisor Status') +
+  xlab('Students Passing, ELA (%)') +
+  ylab('Students Passing, Math (%)') +
+  theme(text = element_text(size=16),
+        axis.text.x = element_text(size=8))
 ```
 
-There is a positive relationship between ELA and math scores, regardless of the status of an arts supervisor in the schools.
+Coming into this analysis I had some lingering thoughts that arts programs might be more beneficial for ELA performance than for math, if they have any effect. In the plot above there is a positive relationship between ELA and math scores, regardless of art supervisor status.  
 
-The next questions are in regard to certifications that the arts supervisor may have, in an arts discipline or in administration. Are there any supervisors certified in an arts discipline and in administration?
+```{r supervisor status stats, results = 'hide'}
+for (i in seq(4)) {
+  lm.fit <- df %>% select(perc_34_all_2018, Q3) %>% 
+    filter(Q3 == i) %>% 
+    lm(perc_34_all_2018_ela~perc_34_all_2018_math, data=.)
+  print(i)
+  print(lm.fit %>% summary())
+  print(lm.fit %>% confint())
+}
+```
+
+```{r supervisor performance stats null}
+lm.fit.null <- df %>% select(perc_34_all_2018) %>% 
+  rename(Math_score = perc_34_all_2018_math,
+         ELA_score = perc_34_all_2018_ela) %>% 
+  lm(Math_score~., data=.)
+lm.fit.null.summ <- lm.fit.null %>% summary()
+lm.fit.null.summ
+```
+
+On inspection the relation between the two scores seems identical between supervisor statuses. In fact, fitting a linear regression to each yields coefficients close to the uncontrolled coefficient for math scores on ELA scores, 1.06415. $Math\_score = \beta_0 + \beta_1 * ELA\_score$  
+
+```{r supervisor performance stats control}
+lm.fit <- df %>% select(q3, perc_34_all_2018) %>% 
+  rename(Math_score = perc_34_all_2018_math,
+         ELA_score = perc_34_all_2018_ela) %>% 
+  lm(Math_score~., data=.)
+lm.fit.summ <- lm.fit %>% summary()
+lm.fit.summ
+```
+
+We can control for supervisor status with dummy variables by altering the regression like so, $Math\_score = \beta_0 + \beta_1 * ELA\_score + \beta_2 * Q3\_1 + \beta_3 * Q3\_2 + \beta_4 * Q3\_3 + \beta_5 * Q3\_4$, where $Q3\_i$ corresponds to the $i^{th}$ member of the list `c('Full-time, solely for arts', 'Full-time, with other duties', 'Part-time', 'None')`.  
+
+```{r supervisor performance diff, echo=TRUE}
+delta.beta1 <- coefficients(lm.fit.null.summ)[2,1] - coefficients(lm.fit.summ)[6,1]
+delta.beta1
+se.delta.beta1 <- sqrt(coefficients(lm.fit.null.summ)[2,2]^2 + coefficients(lm.fit.summ)[6,2]^2)
+se.delta.beta1
+```
+
+On inspection, the regression coefficients for `ELA_score` are close between model specifications A (no controls) and B (controlling for supervisor status). The difference in estimated coefficients $\beta_1$ is -0.0003. To find the variability of the difference in regression coefficients we use the formula $Var(A-B) = Var(A) + Var(B) - 2*Cov(A,B)$. Assuming the covariance in the two estimates is zero yields an 0.0201 as standard error of the difference.  
+Now I feel confident in the claim that there is no difference in the relationsip between ELA and math scores from supervisor statuses.  
+
+```{r mosaic}
+library(ggmosaic)
+df %>% select(Q2_1, Q3) %>% 
+  mutate(Q2_1 = ifelse(Q2_1 == 1, 'No', 'Yes'),
+         Q3 = factor(ifelse(Q3 == 1, 'Full-time, solely for arts',
+                            ifelse(Q3 == 2, 'Full-time, with other duties',
+                                   ifelse(Q3 == 3, 'Part-time', 'None'))))) %>% 
+  mutate(Q3 = as_factor(Q3, levels = c('Full-time, solely for arts',
+                    'Full-time, with other duties',
+                    'Part-time',
+                    'None'))) %>% 
+  ggplot() + 
+  geom_mosaic(aes(x=product(Q3, Q2_1), fill=Q3), na.rm=T) +
+  scale_fill_manual(values=c5) +
+  ggtitle('Does Having an Arts Liaison Affect Supervisor Status?') +
+  xlab('School arts liaison?') +
+  ylab('Arts Supervisor Status') +
+  theme(text = element_text(size=16),
+        axis.text.x = element_text(size=8))
+```
+
+The mosaic plot illustrates that the proportion of schools without an arts program supervisor is greater for schools without an arts liaison that for those with one. This supports the idea that those schools are lacking the resources to fully staff their arts programs, as they have not been able to fill two key positions.  
+
+The next questions concern certifications that arts supervisors may have, either in an arts discipline or in administration.  
 
 ```{r supervisor cert both, results = 'hide'}
 df %>% filter(Q4_1 == 1 & Q5_1 == 1) %>% count()
+df %>% filter(Q4_1 == 1) %>% count()
+df %>% filter(Q5_1 == 1) %>% count()
 ```
 
 ```{r supervisor cert}
-df$supervisor_cert <- with(df, ifelse(Q4_1 == 1 & Q5_1 == 1, 'both',
-                ifelse(Q4_1 == 1 & Q5_1 == 0, 'arts',
-                       ifelse(Q4_1 == 0 & Q5_1 == 1, 'admin', 'none'))))
+df$supervisor_cert <- with(df, ifelse(Q4_1 == 1 & Q5_1 == 1, 'Both',
+                ifelse(Q4_1 == 1 & Q5_1 == 0, 'Arts',
+                       ifelse(Q4_1 == 0 & Q5_1 == 1, 'Administrator', 'None'))))
 df %>% dplyr::select(Q0_DBN, supervisor_cert) %>% 
   group_by(supervisor_cert) %>% 
   count() %>% 
   ggplot(aes(x=supervisor_cert, y=n)) +
-  geom_bar(stat='identity')
+  geom_bar(stat='identity') +
+  ggtitle('Does the Arts Supervisor Have Any Certifications?') +
+  xlab('Supervisor Certification') + ylab('Frequency') +
+  theme(text = element_text(size=16),
+        axis.text.x = element_text(size=8))
 ```
 
 Few supervisors are certified in the arts, the majority are administrators. Could this have an impact on the efficacy of an arts program?
