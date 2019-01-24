@@ -92,6 +92,13 @@ df %>% dplyr::select(perc_34_4_2018) %>% is.na() %>% colSums()
 temp <- c('perc_34_all_2018_ela', 'perc_34_all_2018_math')
 colnames(df)[colnames(df) %in% perc_34_all_2018] <- temp
 perc_34_all_2018 <- temp
+
+perc_4_all_2018 <- df %>% colnames() %>% .[grepl('perc_4_', .)] %>% 
+  .[grepl('_All Grades_2018', .)]
+#Rename perc_4
+temp <- c('perc_4_all_2018_ela', 'perc_4_all_2018_math')
+colnames(df)[colnames(df) %in% perc_4_all_2018] <- temp
+perc_4_all_2018 <- temp
 ```
 
 ```{r q3 missing, results = 'hide'}
@@ -357,7 +364,7 @@ df %>% select(Q2_1, Q3) %>%
         axis.text.x = element_text(size=8))
 ```
 
-The mosaic plot illustrates that the proportion of schools without an arts program supervisor is greater for schools without an arts liaison that for those with one. This supports the idea that those schools are lacking the resources to fully staff their arts programs, as they have not been able to fill two key positions.  
+The mosaic plot illustrates that the proportion of schools without an arts program supervisor is greater for schools without an arts liaison that for those with. This lends support to the idea that those schools are lacking the resources to fully staff their arts programs, as they have not filled two key positions.  
 
 The next questions concern certifications that arts supervisors may have, either in an arts discipline or in administration.  
 
@@ -370,7 +377,7 @@ df %>% filter(Q5_1 == 1) %>% count()
 ```{r supervisor cert}
 df$supervisor_cert <- with(df, ifelse(Q4_1 == 1 & Q5_1 == 1, 'Both',
                 ifelse(Q4_1 == 1 & Q5_1 == 0, 'Arts',
-                       ifelse(Q4_1 == 0 & Q5_1 == 1, 'Administrator', 'None'))))
+                       ifelse(Q4_1 == 0 & Q5_1 == 1, 'Administration', 'None'))))
 df %>% dplyr::select(Q0_DBN, supervisor_cert) %>% 
   group_by(supervisor_cert) %>% 
   count() %>% 
@@ -382,7 +389,7 @@ df %>% dplyr::select(Q0_DBN, supervisor_cert) %>%
         axis.text.x = element_text(size=8))
 ```
 
-Few supervisors are certified in the arts, the majority are administrators. Could this have an impact on the efficacy of an arts program?
+Few supervisors are certified in the arts, the majority are administrators. Could this have an impact on the efficacy of an arts program?  
 
 ```{r supervisor cert stats, results = 'hide'}
 df <- df %>%
@@ -398,16 +405,42 @@ df %>%
   summary()
 ```
 
-Running a linear regression does not yield a statistically significant result for the effect of supervisor certification on student academic performance.
-
-```{r supervisor cert viz}
-df %>%
-  dplyr::select(supervisor_cert, perc_34_all_2018_ela) %>% 
-  ggplot(aes(x=perc_34_all_2018_ela, y=supervisor_cert)) +
-  geom_density_ridges(scale = 1)
+```{r supervisor cert stats ctrl, results = 'hide'}
+df <- df %>%
+  mutate(supervisor_cert_both = ifelse(Q4_1 == 1 & Q5_1 == 1, 1, 0))
+q_certs <- c('Q4_1', 'Q5_1', 'supervisor_cert_both')
+lm.ela <- df %>%
+  dplyr::select(q_certs, total_enrollment_2017, perc_black_2017, perc_pov_2017, perc_34_all_2018_ela) %>% 
+  lm(perc_34_all_2018_ela~., data=.)
+lm.ela %>% summary()
+lm.ela %>% confint()
+lm.math <- df %>%
+  dplyr::select(q_certs, total_enrollment_2017, perc_black_2017, perc_pov_2017, perc_34_all_2018_math) %>% 
+  lm(perc_34_all_2018_math~., data=.)
+lm.math %>% summary()
+lm.math %>% confint()
 ```
 
-We can see greater density at the high end of academic performance for schools with supervisors who have both certifications, but there is no great difference in the shapes of the different groups.
+Linear regressions do not yield a statistically significant result for the effect of either or both supervisor certification on student academic performance.  
+Controlling for school size and percentage of black and impoverished students, there is no statistically significant effect for either certification. A 95% confidence interval of the coefficient for supervisor certification in administration includes zero for ELA and math scores, so we cannot claim that there is a statistically significant effect for that certification on academic performance. The arts certification confidence interval is even wider.  
+
+```{r supervisor cert stats narrow ctrl, results = 'hide'}
+df <- df %>%
+  mutate(supervisor_cert_both = ifelse(Q4_1 == 1 & Q5_1 == 1, 1, 0))
+q_certs <- c('Q4_1', 'Q5_1', 'supervisor_cert_both')
+lm.ela <- df %>%
+  dplyr::select(q_certs, total_enrollment_2017, perc_black_2017, perc_pov_2017, perc_4_all_2018_ela) %>% 
+  lm(perc_4_all_2018_ela~., data=.)
+lm.ela %>% summary()
+lm.ela %>% confint()
+lm.math <- df %>%
+  dplyr::select(q_certs, total_enrollment_2017, perc_black_2017, perc_pov_2017, perc_4_all_2018_math) %>% 
+  lm(perc_4_all_2018_math~., data=.)
+lm.math %>% summary()
+lm.math %>% confint()
+```
+
+If we drill down further, looking at only the percentage of students to receive a 4 (the highest grade), then there is an almost statistically significant coefficient for the effect of arts certification on ELA scores, with a p-value of 0.0585. However, a 95% confidence interval does still include zero. Having been able to arrive at this more tenuous result I feel conflicted between a renewed belief that arts programs *do* have an effect on academic performance and suspicion as to how I *manufactured* it by narrowing my focus until I found an accceptable p-value.  
 
 ### Resources devoted to arts education
 
