@@ -442,6 +442,8 @@ lm.math %>% confint()
 
 If we drill down further, looking at only the percentage of students to receive a 4 (the highest grade), then there is an almost statistically significant coefficient for the effect of arts certification on ELA scores, with a p-value of 0.0585. However, a 95% confidence interval does still include zero. Having been able to arrive at this more tenuous result I feel conflicted between a renewed belief that arts programs *do* have an effect on academic performance and suspicion as to how I *manufactured* it by narrowing my focus until I found an accceptable p-value.  
 
+=================
+
 ### Resources devoted to arts education
 
 Schools were asked how many rooms they have dedicated to arts education. This may be useful for assessing the resources that are made available for arts education more broadly.
