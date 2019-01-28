@@ -510,7 +510,7 @@ df %>% dplyr::select(rooms, total_enrollment_2017, perc_34_all_2018_math) %>%
 
 Conditioning on the effect of school size, through total enrollment, there is no statistically significant effect for the total number of rooms for arts education on student academic performance.  
 
-```{r rooms stats}
+```{r rooms stats ctrl}
 rooms_ded <- df %>% select(q8) %>%
   select(ends_with('C1')) %>% colnames()
 rooms_mul <- df %>% select(q8) %>%
