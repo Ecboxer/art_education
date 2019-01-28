@@ -623,12 +623,11 @@ for (i in q_mid){
 I do not see a significant difference in the distribution of art rooms between elementary- and middle-schools. Let's look at the performance of schools with media arts programs.  
 We can match schools on having media arts rooms by controlling for number of students, number of students in each grade, and perhaps other demographic and academic features. Then we can look at effect on academic performance.  
 
-** Something's Wrong!! **
 ```{r rooms media match}
 library(MatchIt)
 #Feature for having rooms dedicated to media arts
 df <- df %>% filter(!is.na(Q8_R5_C1)) %>% 
-  mutate(rm_ded_media = as.integer(min(1, Q8_R5_C1, na.rm=T)))
+  mutate(rm_ded_media = as.integer(pmin(1, Q8_R5_C1, na.rm=T)))
 f.1 <- paste(paste(q_elem, collapse='+'), paste(q_mid, collapse='+'), sep='+')
 f <- as.formula(paste('rm_ded_media~perc_34_all_2018_ela+total_enrollment_2017', f.1, sep='+'))
 temp <- df %>%
