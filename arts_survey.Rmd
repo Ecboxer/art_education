@@ -244,7 +244,7 @@ However, considering the causal relationship above, we can introduce context by 
 
 Next time, I will continue going through the survey. The presence of an arts supervisor does not necessarily equate to a well-resourced and efficacious arts program, so I hope to find some interesting questions.
 
-===========================
+===
 
 ### Arts Supervisors
 
@@ -442,7 +442,7 @@ lm.math %>% confint()
 
 If we drill down further, looking at only the percentage of students to receive a 4 (the highest grade), then there is an almost statistically significant coefficient for the effect of arts certification on ELA scores, with a p-value of 0.0585. However, a 95% confidence interval does still include zero. Having been able to arrive at this more tenuous result I feel conflicted between a renewed belief that arts programs *do* have an effect on academic performance and suspicion as to how I *manufactured* it by narrowing my focus until I found an accceptable p-value.  
 
-=================
+===
 
 ### Resources devoted to arts education
 
@@ -454,16 +454,48 @@ df <- df %>%
   mutate(rm_dance = Q8_R1_C1 + Q8_R1_C2,
          rm_music = Q8_R2_C1 + Q8_R2_C2,
          rm_thtr = Q8_R3_C1 + Q8_R3_C2,
-         rm_media = Q8_R4_C1 + Q8_R4_C2)
+         rm_visart = Q8_R4_C1 + Q8_R4_C2,
+         rm_media = Q8_R5_C1 + Q8_R5_C2)
 rooms <- df %>% colnames %>% .[grepl('rm_', .)]
 df %>% 
   dplyr::select(starts_with('rm')) %>% 
   gather(key = discipline,
          value = num) %>%
-  ggplot(aes(x=num, color=discipline)) +
-  geom_density()
-#There is the greatest variation in music rooms
+  ggplot(aes(x=num)) +
+  geom_density() +
+  facet_wrap(~discipline)
+df %>% 
+  dplyr::select(starts_with('rm')) %>% 
+  gather(key = discipline,
+         value = num) %>%
+  ggplot(aes(x=num)) +
+  geom_histogram(bins=30) +
+  facet_wrap(~discipline)
 ```
+
+All disciplines show the same trend, many schools have zero to two rooms for any discipline and a few schools have more than twenty rooms. Having twenty-some rooms strikes me as being unrealistic, but this was a representation of rooms designed solely for the arts and multi-purpose rooms. How about if we look at just rooms dedicated solely for the arts.
+
+```{r rooms solely}
+df %>% select(q8) %>%
+  select(ends_with('C1')) %>% 
+  gather(key = discipline,
+         value = num) %>% 
+  filter(!is.na(num)) %>% 
+  ggplot(aes(x=num)) +
+  geom_density() +
+  facet_wrap(~discipline)
+df %>% select(q8) %>%
+  select(ends_with('C2')) %>% 
+  gather(key = discipline,
+         value = num) %>% 
+  filter(!is.na(num)) %>% 
+  ggplot(aes(x=num)) +
+  geom_density() +
+  facet_wrap(~discipline)
+```
+
+Looking at the number of rooms designed solely for the arts, the maximum number of rooms is a more reasonable 13. For a school with several hundred students and a dedicated arts program I can picture that. If we look at multi-purpose rooms, we can see that this is where the bulk of the rooms are from. Not many schools have dozens of multi-purpose rooms for arts disciplines, but again, in the context of a large school, it seems reasonable.  
+I would be curious to discover the overlap for multi-purpose rooms among arts disciplines. In other words, is a school with twenty multi-purpose rooms reporting many of those rooms for each arts discipline? I do not see any way to completely correct for that possibility, but it would be interesting to control for school size to try to get to the bottom of it. If this does not work, then we could consider only the number of rooms designed solely for art, but this could penalize small schools unduly.  
 
 ```{r rooms stats}
 #ELA
@@ -476,7 +508,150 @@ df %>% dplyr::select(rooms, total_enrollment_2017, perc_34_all_2018_math) %>%
   summary()
 ```
 
-Conditioning on the effect of school size, through total enrollment, there is no statistically significant effect of the number of rooms for arts education on student academic performance.
+Conditioning on the effect of school size, through total enrollment, there is no statistically significant effect for the total number of rooms for arts education on student academic performance.  
+
+```{r rooms stats}
+rooms_ded <- df %>% select(q8) %>%
+  select(ends_with('C1')) %>% colnames()
+rooms_mul <- df %>% select(q8) %>%
+  select(ends_with('C2')) %>% colnames()
+#ELA dedicated
+df %>% dplyr::select(rooms_ded, total_enrollment_2017, perc_34_all_2018_ela) %>% 
+  lm(perc_34_all_2018_ela~., data=.) %>% 
+  summary()
+#Math dedicated
+df %>% dplyr::select(rooms_ded, total_enrollment_2017, perc_34_all_2018_math) %>%
+  lm(perc_34_all_2018_math~., data=.) %>% 
+  summary()
+#ELA multi
+df %>% dplyr::select(rooms_mul, total_enrollment_2017, perc_34_all_2018_ela) %>% 
+  lm(perc_34_all_2018_ela~., data=.) %>% 
+  summary()
+#Math multi
+df %>% dplyr::select(rooms_mul, total_enrollment_2017, perc_34_all_2018_math) %>%
+  lm(perc_34_all_2018_math~., data=.) %>% 
+  summary()
+```
+
+Controlling for school size, through total student enrollment, we can see a statistically significant (p-value less than 0.001) positive coefficient for the effect of additional rooms designed and used solely for music, on ELA state test scores. If we consider math scores, rooms solely dedicated to music still have a positive effect, but at a lesser 0.0044 p-value. No other arts disciplines have a statistically significant effect on ELA scores, but dance and media arts rooms have statistically significant (p-value less than 0.05) negative effects on math scores.  
+Considering multi-purpose rooms, no arts discipline has a statistically significant effect on academic performance.  
+
+```{r rooms grades}
+ela_2018 <- q_ela %>% .[grepl('perc_34_[3-8]_2018',.)]
+math_2018 <- q_math %>% .[grepl('perc_34_[3-8]_2018',.)]
+for (i in ela_2018) {
+  temp <- df %>%
+    dplyr::select(i, rooms_ded, total_enrollment_2017) %>% 
+    .[complete.cases(.),]
+  f.ela.1 <- paste(as.character(i), 'total_enrollment_2017', sep='~')
+  f.ela.2 <-  paste(rooms_ded, collapse='+')
+  f.ela <- as.formula(paste(f.ela.1, f.ela.2, sep='+'))
+  temp <- temp %>% lm(f.ela, data=.)
+  print(i)
+  print(temp %>% summary())
+  print(temp %>% confint.default())
+}
+for (i in math_2018) {
+  temp <- df %>%
+    dplyr::select(i, rooms_ded, total_enrollment_2017) %>% 
+    .[complete.cases(.),]
+  f.math.1 <- paste(as.character(i), 'total_enrollment_2017', sep='~')
+  f.math.2 <-  paste(rooms_ded, collapse='+')
+  f.math <- as.formula(paste(f.math.1, f.math.2, sep='+'))
+  temp <- temp %>% lm(f.math, data=.)
+  print(i)
+  print(temp %>% summary())
+  print(temp %>% confint.default())
+}
+```
+
+If we break down academic performance by grade, then the results are not as straigtforward. For sixth-, seventh- and eighth-graders' ELA performance, media arts rooms have a more statistically significant negative coefficient than the positive coefficient for music rooms. All grades show a positive coefficient for music rooms, with a p-value no more than 0.01. There is a large jump in media arts between fifth- and sixth-grades, which is the demarcation between elementary and middle-schools. This leads me to believe that there is an underlying reason, beyond some increased susceptibility to media arts programs at the expense of academic performance. Perhaps not many elementary schools have media arts programs at all, or they are more commonly found in schools that are performing at an atypical level. Both of these can be checked. Note that the term Media Arts refers to film programs.  
+Math scores show a similar trend to ELA scores, in that most grades have a statistically significant positive coefficient for music rooms. Among middle-schools, media arts rooms have a statistically significant negative coefficient. To me, the key difference is that there is not a statistically significant positive coefficient for music rooms on eighth-grade math scores.  
+
+```{r media arts elem}
+q_elem <- q_demo %>% .[grepl('grd_[1-5]_2017', .)]
+q_mid <- q_demo %>% .[grepl('grd_[6-8]_2017', .)]
+disc_5.1 <- c('Dance', 'Music', 'Theater', 'Visual Arts', 'Media Arts')
+for (i in 1:5){
+  temp <- df %>% select(q_elem[i], rooms_ded) %>% 
+    filter((!!sym(q_elem[i])) > 0) %>% 
+    select(-(!!sym(q_elem[i]))) %>% 
+    colSums(na.rm = T) %>%
+    as_data_frame() %>% 
+    ggplot(aes(x=disc_5.1, y=value)) +
+    geom_bar(stat='identity') +
+    ggtitle(q_elem[i])
+  print(temp)
+}
+for (i in 1:3){
+  temp <- df %>% select(q_mid[i], rooms_ded) %>% 
+    filter((!!sym(q_mid[i])) > 0) %>% 
+    select(-(!!sym(q_mid[i]))) %>% 
+    colSums(na.rm = T) %>%
+    as_data_frame() %>% 
+    ggplot(aes(x=disc_5.1, y=value)) +
+    geom_bar(stat='identity') +
+    ggtitle(q_mid[i])
+  print(temp)
+}
+for (i in q_elem){
+  temp <- df %>% select(i, rooms_ded) %>% 
+    filter((!!sym(i)) > 0) %>% 
+    select(-(!!sym(i))) %>% 
+    gather(key = discipline,
+           value = num) %>% 
+    ggplot(aes(x=num)) +
+    geom_density() +
+    facet_wrap(~discipline) +
+    ggtitle(i)
+  print(temp)
+}
+for (i in q_mid){
+  temp <- df %>% select(i, rooms_ded) %>% 
+    filter((!!sym(i)) > 0) %>% 
+    select(-(!!sym(i))) %>% 
+    gather(key = discipline,
+           value = num) %>% 
+    ggplot(aes(x=num)) +
+    geom_density() +
+    facet_wrap(~discipline) +
+    ggtitle(i)
+  print(temp)
+}
+```
+
+I do not see a significant difference in the distribution of art rooms between elementary- and middle-schools. Let's look at the performance of schools with media arts programs.  
+We can match schools on having media arts rooms by controlling for number of students, number of students in each grade, and perhaps other demographic and academic features. Then we can look at effect on academic performance.  
+```{r rooms media match}
+library(MatchIt)
+#Feature for having rooms dedicated to media arts
+df <- df %>% mutate(rm_ded_media = min(1, Q8_R5_C1))
+f.1 <- paste(paste(q_elem, collapse='+'), paste(q_mid, collapse='+'), sep='+')
+f <- as.formula(paste('rm_ded_media~perc_34_all_2018_ela+total_enrollment_2017', f.1, sep='+'))
+temp <- df %>%
+  select(rm_ded_media, perc_34_all_2018_ela, total_enrollment_2017, q_elem, q_mid) %>% 
+  .[complete.cases(.),]
+m.out1 <- matchit(f, data=temp, method='nearest', distance='logit')
+summary(m.out1)
+plot(m.out1)
+
+m.data1 <- match.data(m.out1, distance='pscore')
+hist(m.data1$pscore, breaks=30)
+summary(m.data1$pscore)
+
+with(m.data1, t.test(perc_34_all_2018_ela ~ rm_ded_media))
+
+lm.treat1 <- lm(perc_34_all_2018_ela~rm_ded_media, data=m.data1)
+summary(lm.treat1)
+
+lm.treat2 <- m.data1 %>% select(-weights) %>% 
+  lm(perc_34_all_2018_ela~., .)
+summary(lm.treat2)
+```
+
+Propensity score matching suggests that rooms dedicated to media arts are associated with schools with higher ELA scores. The result that led to this investigation was that rooms dedicated to media arts are associated with lower state test scores among middle-schoolers. In light of this analysis I would not draw any firm conclusions, but would be interested to find some instrumental variable to use in lieu of an experiment.  
+
+===
 
 We can also consider the technological resources available to students. Here we are referring to the various software, computers, cameras, and so on that can be made available for use in the arts. We do not have data on musical instruments for music or props for theater, although it is certainly the case that those resources are important in running an effective arts program.
 
