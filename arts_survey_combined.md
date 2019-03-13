@@ -1,56 +1,27 @@
+Eric Boxer
+March 13, 2019
+
 NYC Schools Arts Survey Data
 ----------------------------
 
-The [2017-2018 Arts Survey
-Data](https://data.cityofnewyork.us/Education/2017-2018-Arts-Survey-Data/475h-cg5t)
-has data about arts teachers, budgets, partnerships with cultural
-organizations and parental involvement in NYC public schools.
+The [2017-2018 Arts Survey Data](https://data.cityofnewyork.us/Education/2017-2018-Arts-Survey-Data/475h-cg5t) has data about arts teachers, budgets, partnerships with cultural organizations and parental involvement in NYC public schools.
 
-In an effort to gain greater context for this data, we can examine it in
-conjuction with publicly available [ELA and Math state test
-results](https://infohub.nyced.org/reports-and-policies/citywide-information-and-data/test-results)
-and [demographic
-data](https://data.cityofnewyork.us/Education/2013-2018-Demographic-Snapshot-School/s52a-8aq6).
+In an effort to gain greater context for this data, we can examine it in conjuction with publicly available [ELA and Math state test results](https://infohub.nyced.org/reports-and-policies/citywide-information-and-data/test-results) and [demographic data](https://data.cityofnewyork.us/Education/2013-2018-Demographic-Snapshot-School/s52a-8aq6).
 
-My goals were to understand the state of arts programs in NYC schools,
-what variables affect the resources of arts programs, and whether arts
-programs have an effect on the academic performance of students.
+My goals were to understand the state of arts programs in NYC schools, what variables affect the resources of arts programs, and whether arts programs have an effect on the academic performance of students.
 
 ### Arts Education Liaison
 
-In 2018, 1265 schools were surveyed. Schools were asked whether they
-have a designated arts supervisor. 5.6%, 72 schools, had no arts
-supervisor. My first question has to do with whether there is any
-relation between the presence of an arts supervisor and the demographics
-of the student population.
+In 2018, 1265 schools were surveyed. Schools were asked whether they have a designated arts supervisor. 5.6%, 72 schools, had no arts supervisor. My first question has to do with whether there is any relation between the presence of an arts supervisor and the demographics of the student population.
 
-![](arts_survey_combined_files/figure-markdown_strict/supervisor%20and%20demos-1.png)
+![](arts_survey_combined_files/figure-markdown_github/supervisor%20and%20demos-1.png)
 
-Schools without a designated arts supervisor appear to have more black
-students than those with supervisors (Fig 4). There appear to be several
-schools withan arts supervisor and very high poverty, but there is no
-clear relation (Fig 2). I also do not see a significant relation between
-total enrollment (Fig 1) or student gender ratio (Fig 3) and having an
-arts supervisor. Most schools have about 500 students and gender splits
-close to 50-50 so a small difference would be hard to detect in these
-graphs.
+Schools without a designated arts supervisor appear to have more black students than those with supervisors (Fig 4). There appear to be several schools withan arts supervisor and very high poverty, but there is no clear relation (Fig 2). I also do not see a significant relation between total enrollment (Fig 1) or student gender ratio (Fig 3) and having an arts supervisor. Most schools have about 500 students and gender splits close to 50-50 so a small difference would be hard to detect in these graphs.
 
-In order to assess the significance of the differences pointed we see
-above, we can try to fit a logistic regression to the relationship
-between each variable and the binary response "Does the school have an
-an arts supervisor?"
+In order to assess the significance of the differences pointed we see above, we can try to fit a logistic regression to the relationship between each variable and the binary response "Does the school have an an arts supervisor?"
 
-These regressions lend support to the differences spotted in the plots
-of student poverty and race, but the most statistically significant
-coefficient comes from total enrollment. The coefficient for total
-enrollment is negative with a p-value below a significance level of
-0.001. Percentages of impoverished and black students have positive
-coefficients with p-values below a significance level of 0.01. As we had
-assumed from the graphs, there was no significant relation between
-gender and whether a school had an arts supervisor.  
-In order to better interpret these results I converted the standard R
-logistic regression coefficients into relative risk, [as seen
-here](https://www.bmj.com/content/348/bmj.f7450.full?ijkey=NHT1YVsoX1RCm8r&keytype=ref).
+These regressions lend support to the differences spotted in the plots of student poverty and race, but the most statistically significant coefficient comes from total enrollment. The coefficient for total enrollment is negative with a p-value below a significance level of 0.001. Percentages of impoverished and black students have positive coefficients with p-values below a significance level of 0.01. As we had assumed from the graphs, there was no significant relation between gender and whether a school had an arts supervisor.
+In order to better interpret these results I converted the standard R logistic regression coefficients into relative risk, [as seen here](https://www.bmj.com/content/348/bmj.f7450.full?ijkey=NHT1YVsoX1RCm8r&keytype=ref).
 
     ## $total_enrollment_2017
     ## [1] 0.9975802
@@ -61,44 +32,18 @@ here](https://www.bmj.com/content/348/bmj.f7450.full?ijkey=NHT1YVsoX1RCm8r&keyty
     ## $perc_black_2017
     ## [1] 1.012599
 
-An increase in total enrollment of one student is associated with a .25%
-decrease in the likelihood that a school has an arts supervisor. An
-increase of one percentage point in student poverty and in share of
-black students is associated with 2.13% and 1.26% increases,
-respectively, in the likelihood that a school has an arts supervisor.
+An increase in total enrollment of one student is associated with a .25% decrease in the likelihood that a school has an arts supervisor. An increase of one percentage point in student poverty and in share of black students is associated with 2.13% and 1.26% increases, respectively, in the likelihood that a school has an arts supervisor.
 
-Consider the possibility that there is confounding between these
-variables, ie. small schools tend to serve poor, mostly black student
-populations. To address this possibility I ran a logistic regression
-upon total enrollment, student poverty and share of black students. This
-yielded only one significant feature, total enrollment, supporting some
-sort of statistical interdependence between the variables.  
-Let S denote school art supervisor, E enrollment, P poverty and B black
-students.
+Consider the possibility that there is confounding between these variables, ie. small schools tend to serve poor, mostly black student populations. To address this possibility I ran a logistic regression upon total enrollment, student poverty and share of black students. This yielded only one significant feature, total enrollment, supporting some sort of statistical interdependence between the variables.
+Let S denote school art supervisor, E enrollment, P poverty and B black students.
 
-![](arts_survey_combined_files/figure-markdown_strict/cg%20supervisor-1.png)
+![](arts_survey_combined_files/figure-markdown_github/cg%20supervisor-1.png)
 
-To further investigate confounding, I ran a linear model for total
-enrollment on percentage of impoverished and black students. As
-suspected, both had negative relationships with total enrollment. In
-particular, with a p-value less than significance level 0.001, each
-additional percentage point of black students was associated with a
-decrease of 5.22 students.
+To further investigate confounding, I ran a linear model for total enrollment on percentage of impoverished and black students. As suspected, both had negative relationships with total enrollment. In particular, with a p-value less than significance level 0.001, each additional percentage point of black students was associated with a decrease of 5.22 students.
 
-As a former NYC public school student this coincides with my experience
-of the school system. In my old neighborhood of Canarsie in Brooklyn was
-a school previously known as South Shore High School. It served
-thousands of poor, majority minority students. In 2010, the school was
-converted into the [South Shore Educational
-Complex](https://insideschools.org/school/18K515) and now houses five
-smaller high schools. A naive observer could be expected to assume that
-small schools have higher faculty:student ratios and more resources to
-expend on their students. In reality the policies of the NYC DOE have
-led to the exact opposite, with underperforming schools split up without
-necessarily being given the resources to turn around their performance.
+As a former NYC public school student this coincides with my experience of the school system. In my old neighborhood of Canarsie in Brooklyn was a school previously known as South Shore High School. It served thousands of poor, majority minority students. In 2010, the school was converted into the [South Shore Educational Complex](https://insideschools.org/school/18K515) and now houses five smaller high schools. A naive observer could be expected to assume that small schools have higher faculty:student ratios and more resources to expend on their students. In reality the policies of the NYC DOE have led to the exact opposite, with underperforming schools split up without necessarily being given the resources to turn around their performance.
 
-My second question is whether there is any relation between having an
-arts supervisor and student academic performance.
+My second question is whether there is any relation between having an arts supervisor and student academic performance.
 
     ## 
     ## Call:
@@ -186,66 +131,30 @@ arts supervisor and student academic performance.
     ## Multiple R-squared:  0.5847, Adjusted R-squared:  0.5828 
     ## F-statistic: 313.2 on 4 and 890 DF,  p-value: < 2.2e-16
 
-To measure academic performance, we can use the percentage of students
-to receive a 3 or 4 on state standardized tests (grades corresponding to
-at or above expectations), denoted `perc_34`. If we consider the
-relationship between having an arts supervisor and academic performance,
-then we see an 11 and 14 point decrease in English Language Arts (ELA)
-and math, respectively, at a significance level less than 0.001.  
-However, considering the causal relationship above, we can introduce
-context by conditioning on student poverty, share of black students, and
-total enrollment. In this case we do not have any statistically
-significant relation with ELA scores and a four point decrease in math
-scores, but at a 0.04 significance level.
+To measure academic performance, we can use the percentage of students to receive a 3 or 4 on state standardized tests (grades corresponding to at or above expectations), denoted `perc_34`. If we consider the relationship between having an arts supervisor and academic performance, then we see an 11 and 14 point decrease in English Language Arts (ELA) and math, respectively, at a significance level less than 0.001.
+However, considering the causal relationship above, we can introduce context by conditioning on student poverty, share of black students, and total enrollment. In this case we do not have any statistically significant relation with ELA scores and a four point decrease in math scores, but at a 0.04 significance level.
 
-Next time, I will continue going through the survey. The presence of an
-arts supervisor does not necessarily equate to a well-resourced and
-efficacious arts program, so I hope to find some interesting questions.
+Next time, I will continue going through the survey. The presence of an arts supervisor does not necessarily equate to a well-resourced and efficacious arts program, so I hope to find some interesting questions.
 
 Part 2
 ------
 
 ### Arts Supervisors
 
-New York City public schools were asked whether their arts supervisor
-was employed full- or part-time. If their supervisor was full-time,
-schools clarified whether they were solely working on arts programs or
-had other responsibilities.  
-In small schools, or under-resourced ones, faculty may be expected to
-wear many hats. In the simplest cases, physical education teachers lead
-gym and health classes. More extreme examples can have teachers with
-certification in, for example, English teaching classes in math or
-science. I do not assert that an arts supervisor *must* be employed
-full-time to run an effective program, but I am curious as to what
-features predict their employment status.
+New York City public schools were asked whether their arts supervisor was employed full- or part-time. If their supervisor was full-time, schools clarified whether they were solely working on arts programs or had other responsibilities.
+In small schools, or under-resourced ones, faculty may be expected to wear many hats. In the simplest cases, physical education teachers lead gym and health classes. More extreme examples can have teachers with certification in, for example, English teaching classes in math or science. I do not assert that an arts supervisor *must* be employed full-time to run an effective program, but I am curious as to what features predict their employment status.
 
-![](arts_survey_combined_files/figure-markdown_strict/q3%20bar-1.png)
+![](arts_survey_combined_files/figure-markdown_github/q3%20bar-1.png)
 
-There are many full-time supervisors with duties other than the arts. I
-would be curious to discover the share of their responsibilities that
-are considered "other". It is possible that some administrators consider
-teaching an arts class or doing clerical work to be "other". Relative to
-the number of supervisors working full-time, there are few part-timers.
+There are many full-time supervisors with duties other than the arts. I would be curious to discover the share of their responsibilities that are considered "other". It is possible that some administrators consider teaching an arts class or doing clerical work to be "other". Relative to the number of supervisors working full-time, there are few part-timers.
 
-Only two schools did not respond to this question about their arts
-supervisor's status. In the previous
-[part](https://ecboxer.github.io/eda/art_education/arts_survey_1.html),
-I looked at the question of whether a school had a designated arts
-liaison. 72 schools responded that they did not, while 296 schools do
-not have any arts supervisor. I wonder whether the presence of an arts
-supervisor has more or less influence on student academic performance,
-relative to arts liaisons.
+Only two schools did not respond to this question about their arts supervisor's status. In the previous [part](https://ecboxer.github.io/eda/art_education/arts_survey_1.html), I looked at the question of whether a school had a designated arts liaison. 72 schools responded that they did not, while 296 schools do not have any arts supervisor. I wonder whether the presence of an arts supervisor has more or less influence on student academic performance, relative to arts liaisons.
 
-To begin exploring academic performance, I will use the percentage of
-students to perform at or above standards for English Language Arts
-(ELA) and math.
+To begin exploring academic performance, I will use the percentage of students to perform at or above standards for English Language Arts (ELA) and math.
 
-![](arts_survey_combined_files/figure-markdown_strict/math%20and%20ela%20scores-1.png)
+![](arts_survey_combined_files/figure-markdown_github/math%20and%20ela%20scores-1.png)
 
-I came into this analysis with some suspicion that arts programs might
-be more beneficial for ELA performance than for math, if they were to
-have any effect. In the plot above there is a positive relationship
-between ELA and math scores, regardless of art supervisor status.
+I came into this analysis with some suspicion that arts programs might be more beneficial for ELA performance than for math, if they were to have any effect. In the plot above there is a positive relationship between ELA and math scores, regardless of art supervisor status.
 
     ## 
     ## Call:
@@ -269,11 +178,7 @@ between ELA and math scores, regardless of art supervisor status.
 
 #### Output 1
 
-On inspection the relation between the two scores seems identical
-between supervisor statuses. In fact, fitting a linear regression to
-each yields coefficients close to the uncontrolled coefficient for math
-scores on ELA scores, 1.06415 (Output 1).
-*M**a**t**h*\_*s**c**o**r**e* = *β*<sub>0</sub> + *β*<sub>1</sub> \* *E**L**A*\_*s**c**o**r**e*
+On inspection the relation between the two scores seems identical between supervisor statuses. In fact, fitting a linear regression to each yields coefficients close to the uncontrolled coefficient for math scores on ELA scores, 1.06415 (Output 1). *M**a**t**h*\_*s**c**o**r**e* = *β*<sub>0</sub> + *β*<sub>1</sub> \* *E**L**A*\_*s**c**o**r**e*
 
     ## 
     ## Call:
@@ -301,13 +206,7 @@ scores on ELA scores, 1.06415 (Output 1).
 
 #### Output 2
 
-We can control for supervisor status with dummy variables by altering
-the regression like so,
-*M**a**t**h*\_*s**c**o**r**e* = *β*<sub>0</sub> + *β*<sub>1</sub> \* *E**L**A*\_*s**c**o**r**e* + *β*<sub>2</sub> \* *Q*3\_1 + *β*<sub>3</sub> \* *Q*3\_2 + *β*<sub>4</sub> \* *Q*3\_3 + *β*<sub>5</sub> \* *Q*3\_4,
-where *Q*3\_*i* corresponds to the *i*<sup>*t**h*</sup> member of the
-list
-`c('Full-time, solely for arts', 'Full-time, with other duties', 'Part-time', 'None')`
-(Output 2).
+We can control for supervisor status with dummy variables by altering the regression like so, *M**a**t**h*\_*s**c**o**r**e* = *β*<sub>0</sub> + *β*<sub>1</sub> \* *E**L**A*\_*s**c**o**r**e* + *β*<sub>2</sub> \* *Q*3\_1 + *β*<sub>3</sub> \* *Q*3\_2 + *β*<sub>4</sub> \* *Q*3\_3 + *β*<sub>5</sub> \* *Q*3\_4, where *Q*3\_*i* corresponds to the *i*<sup>*t**h*</sup> member of the list `c('Full-time, solely for arts', 'Full-time, with other duties', 'Part-time', 'None')` (Output 2).
 
     ##                  2.5 %    97.5 %
     ## (Intercept) -37.819514 -3.792379
@@ -319,64 +218,40 @@ list
 
 #### Output 3
 
-This model specification does not result in a compellingly significant
-coefficient for the effect of a particular supervisor status. Any status
-is estimated to have a positive coefficient, but a 95% confidence
-interval (Output 3) does not exclude the possibility that any of status
-coefficients could be zero.
+This model specification does not result in a compellingly significant coefficient for the effect of a particular supervisor status. Any status is estimated to have a positive coefficient, but a 95% confidence interval (Output 3) does not exclude the possibility that any of status coefficients could be zero.
 
-    delta.beta1 <- coefficients(lm.fit.null.summ)[2,1] - coefficients(lm.fit.summ)[6,1]
-    delta.beta1
+``` r
+delta.beta1 <- coefficients(lm.fit.null.summ)[2,1] - coefficients(lm.fit.summ)[6,1]
+delta.beta1
+```
 
     ## [1] -0.0003517423
 
-    se.delta.beta1 <- sqrt(coefficients(lm.fit.null.summ)[2,2]^2 + coefficients(lm.fit.summ)[6,2]^2)
-    se.delta.beta1
+``` r
+se.delta.beta1 <- sqrt(coefficients(lm.fit.null.summ)[2,2]^2 + coefficients(lm.fit.summ)[6,2]^2)
+se.delta.beta1
+```
 
     ## [1] 0.02011739
 
 #### Output 4
 
-On inspection, the regression coefficients for `ELA_score` are close
-between model specifications A (no controls) and B (controlling for
-supervisor status). The difference in estimated coefficients
-*β*<sub>1</sub> is -0.0003 (Output 4). To find the variability of the
-difference in regression coefficients, we use the formula
-*V**a**r*(*A* − *B*)=*V**a**r*(*A*)+*V**a**r*(*B*)−2 \* *C**o**v*(*A*, *B*).
-Assuming covariance between the two estimates is zero, we arrive at
-0.0201 as the standard error of the difference.  
-Now I can assert that there is no difference in the relationsip between
-ELA and math scores from supervisor statuses.
+On inspection, the regression coefficients for `ELA_score` are close between model specifications A (no controls) and B (controlling for supervisor status). The difference in estimated coefficients *β*<sub>1</sub> is -0.0003 (Output 4). To find the variability of the difference in regression coefficients, we use the formula *V**a**r*(*A* − *B*)=*V**a**r*(*A*)+*V**a**r*(*B*)−2 \* *C**o**v*(*A*, *B*). Assuming covariance between the two estimates is zero, we arrive at 0.0201 as the standard error of the difference.
+Now I can assert that there is no difference in the relationsip between ELA and math scores from supervisor statuses.
 
-![](arts_survey_combined_files/figure-markdown_strict/mosaic-1.png)
+![](arts_survey_combined_files/figure-markdown_github/mosaic-1.png)
 
-This mosaic plot illustrates that the proportion of schools without an
-arts program supervisor is greater for schools without an arts liaison
-that for those with. This lends support to the idea that those schools
-are lacking the resources to fully staff their arts programs, as they
-have not filled two key positions. It is of course possible that arts
-liaisons and supervisors are not necessary to effective programs, and
-schools without either are running just fine. I would like to assess the
-quality of the arts programs themselves as a function their liaison and
-supervisor statuses, perhaps through some sort of measure of funding or
-arts resources.
+This mosaic plot illustrates that the proportion of schools without an arts program supervisor is greater for schools without an arts liaison that for those with. This lends support to the idea that those schools are lacking the resources to fully staff their arts programs, as they have not filled two key positions. It is of course possible that arts liaisons and supervisors are not necessary to effective programs, and schools without either are running just fine. I would like to assess the quality of the arts programs themselves as a function their liaison and supervisor statuses, perhaps through some sort of measure of funding or arts resources.
 
 ------------------------------------------------------------------------
 
-The next questions concern certifications that arts supervisors may
-have, either in an arts discipline or in administration.
+The next questions concern certifications that arts supervisors may have, either in an arts discipline or in administration.
 
-![](arts_survey_combined_files/figure-markdown_strict/supervisor%20cert-1.png)
+![](arts_survey_combined_files/figure-markdown_github/supervisor%20cert-1.png)
 
-Few supervisors are certified in the arts, the majority are
-administrators. Could this have an impact on the efficacy of an arts
-program?
+Few supervisors are certified in the arts, the majority are administrators. Could this have an impact on the efficacy of an arts program?
 
-Linear regressions do not yield a statistically significant result for
-the effect of either or both supervisor certification on student
-academic performance. The model specifications I tried out were of the
-form
-*s**c**o**r**e* = *β*<sub>0</sub> + *β*<sub>1</sub> \* *a**r**t**s*\_*c**e**r**t* + *β*<sub>2</sub> \* *a**d**m**i**n*\_*c**e**r**t* + *β*<sub>3</sub> \* *b**o**t**h*\_*c**e**r**t*.
+Linear regressions do not yield a statistically significant result for the effect of either or both supervisor certification on student academic performance. The model specifications I tried out were of the form *s**c**o**r**e* = *β*<sub>0</sub> + *β*<sub>1</sub> \* *a**r**t**s*\_*c**e**r**t* + *β*<sub>2</sub> \* *a**d**m**i**n*\_*c**e**r**t* + *β*<sub>3</sub> \* *b**o**t**h*\_*c**e**r**t*.
 
     ## 
     ## Call:
@@ -448,13 +323,7 @@ form
 
 #### Output 5
 
-After controlling for school size and percentage of black and
-impoverished students, there is no statistically significant effect for
-certifications on academic performance. A 95% confidence interval of the
-coefficient for supervisor certification in administration includes zero
-for ELA and math scores, so we cannot claim that there is a
-statistically significant nonzero effect on academic performance. The
-confidence interval for arts or both certifications are even wider.
+After controlling for school size and percentage of black and impoverished students, there is no statistically significant effect for certifications on academic performance. A 95% confidence interval of the coefficient for supervisor certification in administration includes zero for ELA and math scores, so we cannot claim that there is a statistically significant nonzero effect on academic performance. The confidence interval for arts or both certifications are even wider.
 
     ## 
     ## Call:
@@ -526,90 +395,40 @@ confidence interval for arts or both certifications are even wider.
 
 #### Output 6
 
-If we drill down further, looking at only the percentage of students to
-receive a 4 (the highest grade), then there is a statistically
-significant coefficient for the effect of both certifications on math
-scores, with a p-value of 0.048996 (Output 6). In this case, a 95%
-confidence interval just excludes zero, being \[0.025, 11.354\].  
-Having been able to arrive at this more tenuous result I feel a renewed
-belief that arts programs do have an effect on academic performance and
-that some proof is lying in the data somewhere. On the other hand I am
-suspicious as to how I *manufactured* this result by narrowing my focus
-until I hacked my way to an accceptable p-value.
+If we drill down further, looking at only the percentage of students to receive a 4 (the highest grade), then there is a statistically significant coefficient for the effect of both certifications on math scores, with a p-value of 0.048996 (Output 6). In this case, a 95% confidence interval just excludes zero, being \[0.025, 11.354\].
+Having been able to arrive at this more tenuous result I feel a renewed belief that arts programs do have an effect on academic performance and that some proof is lying in the data somewhere. On the other hand I am suspicious as to how I *manufactured* this result by narrowing my focus until I hacked my way to an accceptable p-value.
 
 Data Provenance
 ---------------
 
-The [2017-2018 Arts Survey
-Data](https://data.cityofnewyork.us/Education/2017-2018-Arts-Survey-Data/475h-cg5t)
-has data about arts teachers, budgets, partnerships with cultural
-organizations and parental involvement in NYC public schools.
+The [2017-2018 Arts Survey Data](https://data.cityofnewyork.us/Education/2017-2018-Arts-Survey-Data/475h-cg5t) has data about arts teachers, budgets, partnerships with cultural organizations and parental involvement in NYC public schools.
 
-In an effort to gain greater context for this data, I have examined it
-in conjuction with publicly available [ELA and Math state test
-results](https://infohub.nyced.org/reports-and-policies/citywide-information-and-data/test-results)
-and [demographic
-data](https://data.cityofnewyork.us/Education/2013-2018-Demographic-Snapshot-School/s52a-8aq6).
+In an effort to gain greater context for this data, I have examined it in conjuction with publicly available [ELA and Math state test results](https://infohub.nyced.org/reports-and-policies/citywide-information-and-data/test-results) and [demographic data](https://data.cityofnewyork.us/Education/2013-2018-Demographic-Snapshot-School/s52a-8aq6).
 
-My goals are to understand the state of arts programs in NYC schools,
-what variables affect the resources of arts programs, and whether arts
-programs have an effect on the academic performance of students.
+My goals are to understand the state of arts programs in NYC schools, what variables affect the resources of arts programs, and whether arts programs have an effect on the academic performance of students.
 
 Part 3
 ------
 
 ### Resources devoted to arts education
 
-This is part of an extended look at the NYC School Arts Survey:  
-[Part One: Arts Education
-Liaisons](https://ecboxer.github.io/eda/art_education/arts_survey_1.html)  
-[Part Two: Arts Education
-Supervisors](https://ecboxer.github.io/eda/art_education/arts_survey_2.html)
+This is part of an extended look at the NYC School Arts Survey:
+[Part One: Arts Education Liaisons](https://ecboxer.github.io/eda/art_education/arts_survey_1.html)
+[Part Two: Arts Education Supervisors](https://ecboxer.github.io/eda/art_education/arts_survey_2.html)
 
-The survey had several questions regarding which resources schools are
-devoting to arts education, whether the administrator thought they were
-sufficient and which non-Department of Education sources of support were
-available to them.
+The survey had several questions regarding which resources schools are devoting to arts education, whether the administrator thought they were sufficient and which non-Department of Education sources of support were available to them.
 
-Schools were asked how many rooms they have dedicated to arts education.
-Rooms were divided into two categories: "rooms designed and used solely
-for the arts" and "multi-purpose or general education classroooms used
-for arts education". Five arts disciplines were considered: dance,
-music, theater, visual arts, and media arts (a category which includes
-film and photography). Note that the term media arts refers to film
-programs.  
-Number of rooms is certainly not a direct metric for a school's
-commitment to the arts. I hypothesize that it may prove useful for
-assessing the resources that are made available for arts education more
-broadly. Of course, there may be confounding factors, such as school
-size and borough.
+Schools were asked how many rooms they have dedicated to arts education. Rooms were divided into two categories: "rooms designed and used solely for the arts" and "multi-purpose or general education classroooms used for arts education". Five arts disciplines were considered: dance, music, theater, visual arts, and media arts (a category which includes film and photography). Note that the term media arts refers to film programs.
+Number of rooms is certainly not a direct metric for a school's commitment to the arts. I hypothesize that it may prove useful for assessing the resources that are made available for arts education more broadly. Of course, there may be confounding factors, such as school size and borough.
 
-![](arts_survey_combined_files/figure-markdown_strict/rooms%20setup-1.png)![](arts_survey_combined_files/figure-markdown_strict/rooms%20setup-2.png)
+![](arts_survey_combined_files/figure-markdown_github/rooms%20setup-1.png)![](arts_survey_combined_files/figure-markdown_github/rooms%20setup-2.png)
 
-All disciplines show the same trend; many schools have zero to two rooms
-for a given discipline and a few schools have more than twenty rooms.
-Having twenty-some rooms might be bordering on unrealistic, but the
-above plots depict both categories of rooms, those designed solely for
-the arts and multi-purpose. Will we get more reasonable numbers by
-examining the room counts separately?
+All disciplines show the same trend; many schools have zero to two rooms for a given discipline and a few schools have more than twenty rooms. Having twenty-some rooms might be bordering on unrealistic, but the above plots depict both categories of rooms, those designed solely for the arts and multi-purpose. Will we get more reasonable numbers by examining the room counts separately?
 
-![](arts_survey_combined_files/figure-markdown_strict/rooms%20solely-1.png)![](arts_survey_combined_files/figure-markdown_strict/rooms%20solely-2.png)
+![](arts_survey_combined_files/figure-markdown_github/rooms%20solely-1.png)![](arts_survey_combined_files/figure-markdown_github/rooms%20solely-2.png)
 
-Looking at the number of rooms designed solely for the arts, the maximum
-number of rooms is a more reasonable thirteen. For a school with several
-hundred students and a dedicated arts program I can picture that. If we
-look at multi-purpose rooms, we see that this class contains the bulk of
-the rooms. Not many schools have dozens of multi-purpose rooms for arts
-disciplines, but again, in the context of a large school, it seems like
-a possible number for some schools to have.  
-I would be curious to discover the overlap for multi-purpose rooms among
-arts disciplines. In other words, is a school with twenty multi-purpose
-rooms reporting some of those rooms as in use for multiple arts
-discipline? I do not see any way to completely correct for that
-possibility, but it would be interesting to control for school size to
-try to get to the bottom of it. If this does not work, then we could
-consider only the number of rooms designed solely for art, but this
-could penalize small schools unduly.
+Looking at the number of rooms designed solely for the arts, the maximum number of rooms is a more reasonable thirteen. For a school with several hundred students and a dedicated arts program I can picture that. If we look at multi-purpose rooms, we see that this class contains the bulk of the rooms. Not many schools have dozens of multi-purpose rooms for arts disciplines, but again, in the context of a large school, it seems like a possible number for some schools to have.
+I would be curious to discover the overlap for multi-purpose rooms among arts disciplines. In other words, is a school with twenty multi-purpose rooms reporting some of those rooms as in use for multiple arts discipline? I do not see any way to completely correct for that possibility, but it would be interesting to control for school size to try to get to the bottom of it. If this does not work, then we could consider only the number of rooms designed solely for art, but this could penalize small schools unduly.
 
     ## 
     ## Call:
@@ -661,9 +480,7 @@ could penalize small schools unduly.
     ## Multiple R-squared:  0.09644,    Adjusted R-squared:  0.08876 
     ## F-statistic: 12.56 on 6 and 706 DF,  p-value: 1.747e-13
 
-Conditioning on the effect of school size, through total enrollment,
-there is no statistically significant effect for the total number of
-rooms for arts education on student academic performance.
+Conditioning on the effect of school size, through total enrollment, there is no statistically significant effect for the total number of rooms for arts education on student academic performance.
 
     ## 
     ## Call:
@@ -715,20 +532,9 @@ rooms for arts education on student academic performance.
     ## Multiple R-squared:  0.104,  Adjusted R-squared:  0.09722 
     ## F-statistic: 15.41 on 6 and 797 DF,  p-value: < 2.2e-16
 
-Controlling for school size, through total student enrollment, we can
-see a statistically significant (p-value less than 0.001) positive
-coefficient for the effect of additional rooms designed and used solely
-for music, on ELA state test scores. If we consider math scores, rooms
-solely dedicated to music still have a positive effect, but at a 0.0044
-p-value. No other arts disciplines have a statistically significant
-effect on ELA scores, but dance and media arts rooms have statistically
-significant (p-value less than 0.05) negative effects on math scores.  
-When we consider multi-purpose rooms, no arts discipline has a
-statistically significant effect on academic performance.  
-I am curious about the reason behind why music rooms appear to be
-associated with higher test scores, and why dance and media arts are
-associated with lower scores. To investigate we can try to control for
-different features and divide the performance metric by grade.
+Controlling for school size, through total student enrollment, we can see a statistically significant (p-value less than 0.001) positive coefficient for the effect of additional rooms designed and used solely for music, on ELA state test scores. If we consider math scores, rooms solely dedicated to music still have a positive effect, but at a 0.0044 p-value. No other arts disciplines have a statistically significant effect on ELA scores, but dance and media arts rooms have statistically significant (p-value less than 0.05) negative effects on math scores.
+When we consider multi-purpose rooms, no arts discipline has a statistically significant effect on academic performance.
+I am curious about the reason behind why music rooms appear to be associated with higher test scores, and why dance and media arts are associated with lower scores. To investigate we can try to control for different features and divide the performance metric by grade.
 
     ## [1] "perc_34_5_2018_ela"
     ## 
@@ -830,36 +636,13 @@ different features and divide the performance metric by grade.
     ## Multiple R-squared:  0.218,  Adjusted R-squared:  0.2033 
     ## F-statistic: 14.82 on 6 and 319 DF,  p-value: 5.957e-15
 
-If we break down academic performance by grade, then the results are not
-as straigtforward. For sixth-, seventh- and eighth-graders' ELA
-performance, media arts rooms have a more statistically significant
-negative coefficient than the positive coefficient for music rooms. All
-grades show a positive coefficient for music rooms, with a p-value no
-more than 0.01. There is a large jump in media arts between fifth- and
-sixth-grades, which is the demarcation between elementary and middle
-schools. A jump of this nature could have an underlying reason, beyond
-increased susceptibility to media arts programs at the expense of
-academic performance beginning in middle school. Perhaps not many
-elementary schools have media arts programs at all, or they are more
-commonly found in schools that are otherwise performing at an atypical
-level (higher or lower). Both of these can be checked.  
-Math scores show a similar trend to ELA scores, with most grades showing
-a statistically significant positive coefficient for music rooms. Among
-middle schools, media arts rooms have a statistically significant
-negative coefficient. The key difference with ELA scores is that there
-is not a statistically significant positive coefficient for music rooms
-on eighth-grade math scores.
+If we break down academic performance by grade, then the results are not as straigtforward. For sixth-, seventh- and eighth-graders' ELA performance, media arts rooms have a more statistically significant negative coefficient than the positive coefficient for music rooms. All grades show a positive coefficient for music rooms, with a p-value no more than 0.01. There is a large jump in media arts between fifth- and sixth-grades, which is the demarcation between elementary and middle schools. A jump of this nature could have an underlying reason, beyond increased susceptibility to media arts programs at the expense of academic performance beginning in middle school. Perhaps not many elementary schools have media arts programs at all, or they are more commonly found in schools that are otherwise performing at an atypical level (higher or lower). Both of these can be checked.
+Math scores show a similar trend to ELA scores, with most grades showing a statistically significant positive coefficient for music rooms. Among middle schools, media arts rooms have a statistically significant negative coefficient. The key difference with ELA scores is that there is not a statistically significant positive coefficient for music rooms on eighth-grade math scores.
 
-![](arts_survey_combined_files/figure-markdown_strict/media%20arts%20elem-1.png)![](arts_survey_combined_files/figure-markdown_strict/media%20arts%20elem-2.png)![](arts_survey_combined_files/figure-markdown_strict/media%20arts%20elem-3.png)![](arts_survey_combined_files/figure-markdown_strict/media%20arts%20elem-4.png)
+![](arts_survey_combined_files/figure-markdown_github/media%20arts%20elem-1.png)![](arts_survey_combined_files/figure-markdown_github/media%20arts%20elem-2.png)![](arts_survey_combined_files/figure-markdown_github/media%20arts%20elem-3.png)![](arts_survey_combined_files/figure-markdown_github/media%20arts%20elem-4.png)
 
-I do not see a significant difference in the distribution of art rooms
-between elementary and middle schools. Music and visual arts rooms are
-the most common. Let's look at the performance of schools with media
-arts programs.  
-We can match schools on having media arts rooms while controlling for
-number of students, number of students in each grade, and perhaps other
-demographic and academic features. Then we can examine the effect of
-media arts rooms on academic performance.
+I do not see a significant difference in the distribution of art rooms between elementary and middle schools. Music and visual arts rooms are the most common. Let's look at the performance of schools with media arts programs.
+We can match schools on having media arts rooms while controlling for number of students, number of students in each grade, and perhaps other demographic and academic features. Then we can examine the effect of media arts rooms on academic performance.
 
     ## 
     ## Call:
@@ -939,7 +722,7 @@ media arts rooms on academic performance.
     ## Unmatched     138       0
     ## Discarded       0       0
 
-![](arts_survey_combined_files/figure-markdown_strict/rooms%20media%20match-1.png)![](arts_survey_combined_files/figure-markdown_strict/rooms%20media%20match-2.png)![](arts_survey_combined_files/figure-markdown_strict/rooms%20media%20match-3.png)![](arts_survey_combined_files/figure-markdown_strict/rooms%20media%20match-4.png)
+![](arts_survey_combined_files/figure-markdown_github/rooms%20media%20match-1.png)![](arts_survey_combined_files/figure-markdown_github/rooms%20media%20match-2.png)![](arts_survey_combined_files/figure-markdown_github/rooms%20media%20match-3.png)![](arts_survey_combined_files/figure-markdown_github/rooms%20media%20match-4.png)
 
 Propensity score matching improves balance for most features.
 
@@ -1003,9 +786,4 @@ Propensity score matching improves balance for most features.
     ## Multiple R-squared:  0.6466, Adjusted R-squared:  0.6411 
     ## F-statistic: 116.1 on 11 and 698 DF,  p-value: < 2.2e-16
 
-Matching suggests that rooms dedicated to media arts are associated with
-schools with higher ELA scores. The result that led to this
-investigation was that rooms dedicated to media arts are associated with
-lower state test scores among middle-schoolers. In light of this
-analysis I cannot draw any firm conclusions, but would be interested to
-find some instrumental variable to use in lieu of an experiment.
+Matching suggests that rooms dedicated to media arts are associated with schools with higher ELA scores. The result that led to this investigation was that rooms dedicated to media arts are associated with lower state test scores among middle-schoolers. In light of this analysis I cannot draw any firm conclusions, but would be interested to find some instrumental variable to use in lieu of an experiment.

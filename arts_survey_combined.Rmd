@@ -1,7 +1,7 @@
 ---
 author: "Eric Boxer"
 date: "March 13, 2019"
-output: html_document
+output: github_document
 editor_options: 
   chunk_output_type: console
 ---
