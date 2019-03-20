@@ -751,3 +751,147 @@ summary(lm.treat2)
 ```
 
 Matching suggests that rooms dedicated to media arts are associated with schools with higher ELA scores. The result that led to this investigation was that rooms dedicated to media arts are associated with lower state test scores among middle-schoolers. In light of this analysis I cannot draw any firm conclusions, but would be interested to find some instrumental variable to use in lieu of an experiment.  
+
+## Part Four
+
+### Technology tools
+
+We can also consider the technology tools available to students. This includes the various cameras, computers, software, and other tools that can be used in the arts. We do not have data on musical instruments or props. It would be interesting to include that information in a future analysis, since it is certainly the case that those resources are integral to music and theater programs.  
+
+```{r tools setup}
+q9 <- df %>% colnames() %>% .[grepl('Q9_', .)]
+tools <- c('Animation Software',
+           'Color Printers',
+           'Darkrooms and Equipment',
+           'Digital Drawing Tablets',
+           'Digital Still Cameras',
+           'Digital Video Cameras',
+           'Digital Video Editing Software',
+           'DVD Player/Recorder',
+           'Interactive Distance Exchange Labs',
+           'iPad/iPad mini/iPod',
+           'Laptop',
+           'Lighting Equipment',
+           'MIDI Keyboards',
+           'Music Editing Software',
+           'Photo Editing Software',
+           'Scanners',
+           'Smartboard',
+           'Sound Equipment',
+           'Still 35mm Film Cameras',
+           'Tablet (other than an iPad)',
+           'TV Studio',
+           'Video Projector')
+colnames(df)[colnames(df) %in% q9] <- tools
+df %>% dplyr::select(tools) %>% colMeans() %>% 
+  as_data_frame() %>% 
+  ggplot(aes(x=reorder(tools, value), y=value)) +
+  geom_bar(stat='identity') +
+  coord_flip() +
+  xlab('') + ylab('Share of schools') +
+  theme(text = element_text(size=16),
+        axis.text.x = element_text(size=12),
+        axis.text.y = element_text(size=12))
+```
+
+Smartboards and laptops are the most frequently found tools. During my time in school, I never took an art class that used smartboards or laptops. I would hypothesize that these tools have been included erroneously by respondents, as items that are found in the school but are not used specifically for art education.  
+To be expected, the least frequent tools are suites of equipment: interactive distance exchange labs, darkrooms and TV studios.  
+Moving up the list, we find expensive single pieces of equipment such as film cameras, keyboards and lighting. Contrary to my expectations, software packages: music and video editing and animation software, are not particularly prevalent. Photo editing software is the most frequent, found in 28% of schools, and music editing software is the least frequent, found in 20%. 80% of schools have laptops so for only one-quarter of these institutions to have access to music editing software seems like a missed opportunity. These are expensive but I can imagine that Adobe or Microsoft could garner some goodwill by donating licenses to schools for proprietary tools. Otherwise, there are free tools out there, so this gap in tooling could indicate a lack of technological sophistication on the part of teachers and administrators.  
+If there is no benefit to having any of these tools, then efforts to increase their availability would be foolish.  
+
+```{r tools stats}
+df %>% dplyr::select(tools, perc_34_4_2018_ela) %>% 
+  lm(perc_34_4_2018_ela~., data=.) %>% 
+  summary()
+df %>% dplyr::select(tools, perc_34_4_2018_math) %>% 
+  lm(perc_34_4_2018_math~., data=.) %>% 
+  summary()
+```
+
+Animation software has a significant positive coefficient for English and math (p-values 0.01 and 0.05, respectively) and digital drawing tablets have a significant negative coefficient for English and math (p-values 0.01 for both). There are some other tools that have p-values less than 0.1, lighting equipment, film cameras, color printers, scanners, music editing software, and iPads. Does this effect remain if we control for wealth? Although these are not the most expensive tools, I have a suspicion that the presence of these tools might be statistically related to wealth either directly or through a common causal variable.  
+
+```{r tools stats ctrl wealth}
+df %>% dplyr::select(tools, perc_pov_2017, perc_34_4_2018_ela) %>% 
+  lm(perc_34_4_2018_ela~., data=.) %>% 
+  summary()
+df %>% dplyr::select(tools, perc_pov_2017, perc_34_4_2018_math) %>% 
+  lm(perc_34_4_2018_math~., data=.) %>% 
+  summary()
+```
+
+After controlling for wealth, animation software and digital drawing tablets lose their statistical significance. Instead, scanners have a significant positive coefficient for English and math (p-values 0.01 for both), DVD players have a significant positive coefficient for math (p-value 0.01). Other significant tools include, digital video cameras (negative for English and math), lighting equipment (positive for English), and iPads (positive for math). The inclusion of a single variable, the percentage of poverty in a school, has totally removed the significance we would have placed upon the presence of animation software and digital drawing tablets, which are on the niche side of the technology tool spectrum. Now we get the idea that more rudimentary and widely applicable tools, scanners and DVD players, could be distributed to improve academic performance (both are found in about one-quarter of schools).  
+
+## Part Five
+
+### Borough
+
+We have found that controlling for demographic information, in the form of wealth and racial make-up, can have a great effect on our analyses. This leads to the question of how finely-grained the demographics need to be. Diversity is widely variable across the city. According to the 2000 US Census, 59.2% of West Queens residents were foreign-born and while only 11.9% of residents of the South Shore of Staten Island were foreign-born. There is similar diversity in the percentage of residents living in poverty, 38.2% in East Harlem and just 6.6% in the Upper East Side.  
+Let us look at the possibility that there is a correlation between a school's borough and student academic performance.  
+
+```{r boroughs setup}
+#Extract boroughs
+df$boro <- df$Q0_DBN %>% str_extract('\\D')
+df <- df %>% mutate(
+  K = if_else(boro == 'K', 1, 0),
+  X = if_else(boro == 'X', 1, 0),
+  M = if_else(boro == 'M', 1, 0),
+  Q = if_else(boro == 'Q', 1, 0),
+  R = if_else(boro == 'R', 1, 0)
+  )
+```
+
+```{r boroughs viz}
+boro_levels <- df %>% group_by(boro) %>%
+  count() %>% arrange(desc(n)) %>%
+  select(boro) %>% pull()
+df %>% 
+  mutate(boro = factor(boro,
+                       levels=boro_levels)) %>% 
+  ggplot() +
+  geom_bar(aes(boro)) +
+  scale_x_discrete(labels=c('K'='Brooklyn',
+                            'X'='Bronx',
+                            'M'='Manhattan',
+                            'Q'='Queens',
+                            'R'='Staten Island')) +
+  xlab('') +
+  theme_eric()
+```
+
+```{r boroughs performance}
+df %>%
+  select(perc_34_4_2018_ela, K, X, M, Q, R) %>% 
+  lm(perc_34_4_2018_ela~., data=.) %>% 
+  summary()
+df %>%
+  select(perc_34_4_2018_math, K, X, M, Q, R) %>% 
+  lm(perc_34_4_2018_math~., data=.) %>% 
+  summary()
+```
+
+Belonging to the Bronx has a significant negative coefficient for English and math scores. Brooklyn has a less significant negative coefficient, but only for English scores and less negative than that of the Bronx. A 95% confidence interval on the coefficient for the Bronx on English scores is [-29.8,-14.9] and for Brooklyn [-15.2,-1.0]. Manhattan and Queens did not have statistically significant coefficients, and we do not have enough Staten Island schools to get a result for them (with only 63 of our 1193 schools).  
+
+```{r borough confint}
+df %>%
+  select(perc_34_4_2018_ela, K, X, M, Q, R) %>% 
+  lm(perc_34_4_2018_ela~., data=.) %>% 
+  confint()
+df %>%
+  select(perc_34_4_2018_math, K, X, M, Q, R) %>% 
+  lm(perc_34_4_2018_math~., data=.) %>% 
+  confint()
+```
+
+Consider the tremendous diversity within each borough. For example, the difference in poverty levels within Manhattan we pointed to earlier in the comparison of East Harlem and the Upper East Side. Perhaps controlling for some demographic information will alter the results of our regression analyses.  
+
+```{r boroughs performance ctrl}
+df %>% select(perc_34_4_2018_ela, perc_black_2017, perc_pov_2017, K, X, M, Q, R) %>% 
+  lm(perc_34_4_2018_ela~., data=.) %>% 
+  summary()
+df %>% select(perc_34_4_2018_math, perc_black_2017, perc_pov_2017, K, X, M, Q, R) %>% 
+  lm(perc_34_4_2018_math~., data=.) %>% 
+  summary()
+```
+
+TODO
+Controlling for the percentage of black students and of poor students removed the statistical significance of the negative coefficient for the Bronx, and results in a positive statistically significant effect for Brooklyn.
