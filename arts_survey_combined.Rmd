@@ -1,6 +1,6 @@
 ---
 author: "Eric Boxer"
-date: "March 13, 2019"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: github_document
 editor_options: 
   chunk_output_type: console
@@ -27,6 +27,9 @@ library(ggpubr)
 library(ggridges)
 library(MatchIt)
 library(tidyverse)
+library(RColorBrewer)
+library(MASS)
+library(aod)
 df <- read_csv('resources/arts_demo_ela_math.csv')
 theme_eric <- function(base_size = 11,
                       base_family = 'URWHelvetica',
@@ -218,16 +221,20 @@ As a former NYC public school student this coincides with my experience of the s
 
 My second question is whether there is any relation between having an arts supervisor and student academic performance.  
 ```{r supervisor performance}
-df %>% select(perc_34_all_2018_ela, Q2_1) %>% 
+df %>%
+  dplyr::select(perc_34_all_2018_ela, Q2_1) %>% 
   lm(perc_34_all_2018_ela~., data=.) %>%
   summary()
-df %>% select(perc_34_all_2018_ela, Q2_1, perc_pov_2017, perc_black_2017, total_enrollment_2017) %>% 
+df %>%
+  dplyr::select(perc_34_all_2018_ela, Q2_1, perc_pov_2017, perc_black_2017, total_enrollment_2017) %>% 
   lm(perc_34_all_2018_ela~., data=.) %>%
   summary()
-df %>% select(perc_34_all_2018_math, Q2_1) %>% 
+df %>%
+  dplyr::select(perc_34_all_2018_math, Q2_1) %>% 
   lm(perc_34_all_2018_math~., data=.) %>%
   summary()
-df %>% select(perc_34_all_2018_math, Q2_1, perc_pov_2017, perc_black_2017, total_enrollment_2017) %>% 
+df %>%
+  dplyr::select(perc_34_all_2018_math, Q2_1, perc_pov_2017, perc_black_2017, total_enrollment_2017) %>% 
   lm(perc_34_all_2018_math~., data=.) %>%
   summary()
 ```
@@ -237,7 +244,7 @@ However, considering the causal relationship above, we can introduce context by 
 
 Next time, I will continue going through the survey. The presence of an arts supervisor does not necessarily equate to a well-resourced and efficacious arts program, so I hope to find some interesting questions.
 
-## Part 2
+## Part Two
 
 ### Arts Supervisors
 
@@ -296,7 +303,8 @@ I came into this analysis with some suspicion that arts programs might be more b
 
 ```{r supervisor status stats, results = 'hide'}
 for (i in seq(4)) {
-  lm.fit <- df %>% select(perc_34_all_2018, Q3) %>% 
+  lm.fit <- df %>% 
+    dplyr::select(perc_34_all_2018, Q3) %>% 
     filter(Q3 == i) %>% 
     lm(perc_34_all_2018_ela~perc_34_all_2018_math, data=.)
   print(i)
@@ -306,7 +314,8 @@ for (i in seq(4)) {
 ```
 
 ```{r supervisor performance stats null}
-lm.fit.null <- df %>% select(perc_34_all_2018) %>% 
+lm.fit.null <- df %>%
+  dplyr::select(perc_34_all_2018) %>% 
   rename(Math_score = perc_34_all_2018_math,
          ELA_score = perc_34_all_2018_ela) %>% 
   lm(Math_score~., data=.)
@@ -318,7 +327,8 @@ lm.fit.null.summ
 On inspection the relation between the two scores seems identical between supervisor statuses. In fact, fitting a linear regression to each yields coefficients close to the uncontrolled coefficient for math scores on ELA scores, 1.06415 (Output 1). $Math\_score = \beta_0 + \beta_1 * ELA\_score$  
 
 ```{r supervisor performance stats control}
-lm.fit <- df %>% select(q3, perc_34_all_2018) %>% 
+lm.fit <- df %>%
+  dplyr::select(q3, perc_34_all_2018) %>% 
   rename(Math_score = perc_34_all_2018_math,
          ELA_score = perc_34_all_2018_ela) %>% 
   lm(Math_score~., data=.)
@@ -349,7 +359,8 @@ Now I can assert that there is no difference in the relationsip between ELA and 
 
 ```{r mosaic, fig.width=15, fig.height=10}
 library(ggmosaic)
-df %>% select(Q2_1, Q3) %>% 
+df %>% 
+  dplyr::select(Q2_1, Q3) %>% 
   mutate(Q2_1 = ifelse(Q2_1 == 1, 'No', 'Yes'),
          Q3 = factor(ifelse(Q3 == 1, 'Full-time, solely for arts',
                             ifelse(Q3 == 2, 'Full-time, with other duties',
@@ -448,6 +459,7 @@ perc_4_all_2018 <- temp
 
 df <- df %>%
   mutate(supervisor_cert_both = ifelse(Q4_1 == 1 & Q5_1 == 1, 1, 0))
+
 ```
 
 ```{r supervisor cert stats narrow ctrl}
@@ -481,7 +493,7 @@ In an effort to gain greater context for this data, I have examined it in conjuc
 
 My goals are to understand the state of arts programs in NYC schools, what variables affect the resources of arts programs, and whether arts programs have an effect on the academic performance of students.  
 
-## Part 3
+## Part Three
 
 ### Resources devoted to arts education
 
@@ -527,14 +539,15 @@ df %>%
 All disciplines show the same trend; many schools have zero to two rooms for a given discipline and a few schools have more than twenty rooms. Having twenty-some rooms might be bordering on unrealistic, but the above plots depict both categories of rooms, those designed solely for the arts and multi-purpose. Will we get more reasonable numbers by examining the room counts separately?  
 
 ```{r rooms solely}
-df %>% select(q8) %>%
-  select(ends_with('C1')) %>% 
+df %>%
+  dplyr::select(q8) %>%
+  dplyr::select(ends_with('C1')) %>% 
   mutate(dance_rooms = Q8_R1_C1,
          music_rooms = Q8_R2_C1,
          theater_rooms = Q8_R3_C1,
          visual_arts_rooms = Q8_R4_C1,
          media_arts_rooms = Q8_R5_C1) %>% 
-  select(ends_with('rooms')) %>% 
+  dplyr::select(ends_with('rooms')) %>% 
   gather(key = discipline,
          value = num) %>% 
   filter(!is.na(num)) %>% 
@@ -543,14 +556,15 @@ df %>% select(q8) %>%
   facet_wrap(~discipline) +
   ggtitle('Rooms designed and used solely for the arts') +
   theme_eric()
-df %>% select(q8) %>%
-  select(ends_with('C2')) %>% 
+df %>%
+  dplyr::select(q8) %>%
+  dplyr::select(ends_with('C2')) %>% 
   mutate(dance_rooms = Q8_R1_C2,
          music_rooms = Q8_R2_C2,
          theater_rooms = Q8_R3_C2,
          visual_arts_rooms = Q8_R4_C2,
          media_arts_rooms = Q8_R5_C2) %>% 
-  select(ends_with('rooms')) %>% 
+  dplyr::select(ends_with('rooms')) %>% 
   gather(key = discipline,
          value = num) %>% 
   filter(!is.na(num)) %>% 
@@ -578,9 +592,11 @@ df %>% dplyr::select(rooms, total_enrollment_2017, perc_34_all_2018_math) %>%
 Conditioning on the effect of school size, through total enrollment, there is no statistically significant effect for the total number of rooms for arts education on student academic performance.  
 
 ```{r rooms stats ctrl}
-rooms_ded <- df %>% select(q8) %>%
+rooms_ded <- df %>%
+  dplyr::select(q8) %>%
   dplyr::select(ends_with('C1')) %>% colnames()
-rooms_mul <- df %>% select(q8) %>%
+rooms_mul <- df %>%
+  dplyr::select(q8) %>%
   dplyr::select(ends_with('C2')) %>% colnames()
 #ELA dedicated
 df %>% dplyr::select(rooms_ded, total_enrollment_2017, perc_34_all_2018_ela) %>% 
@@ -648,9 +664,10 @@ q_elem <- q_demo %>% .[grepl('grd_[1-5]_2017', .)]
 q_mid <- q_demo %>% .[grepl('grd_[6-8]_2017', .)]
 disc_5.1 <- c('Dance', 'Music', 'Theater', 'Visual Arts', 'Media Arts')
 for (i in 1:5){
-  temp <- df %>% select(q_elem[i], rooms_ded) %>% 
+  temp <- df %>%
+    dplyr::select(q_elem[i], rooms_ded) %>% 
     filter((!!sym(q_elem[i])) > 0) %>% 
-    select(-(!!sym(q_elem[i]))) %>% 
+    dplyr::select(-(!!sym(q_elem[i]))) %>% 
     colSums(na.rm = T) %>%
     as_data_frame() %>% 
     ggplot(aes(x=disc_5.1, y=value)) +
@@ -661,9 +678,10 @@ for (i in 1:5){
   }
 }
 for (i in 1:3){
-  temp <- df %>% select(q_mid[i], rooms_ded) %>% 
+  temp <- df %>%
+    dplyr::select(q_mid[i], rooms_ded) %>% 
     filter((!!sym(q_mid[i])) > 0) %>% 
-    select(-(!!sym(q_mid[i]))) %>% 
+    dplyr::select(-(!!sym(q_mid[i]))) %>% 
     colSums(na.rm = T) %>%
     as_data_frame() %>% 
     ggplot(aes(x=disc_5.1, y=value)) +
@@ -674,15 +692,16 @@ for (i in 1:3){
   }
 }
 for (i in q_elem){
-  temp <- df %>% select(i, rooms_ded) %>% 
+  temp <- df %>%
+    dplyr::select(i, rooms_ded) %>% 
     filter((!!sym(i)) > 0) %>% 
-    select(-(!!sym(i))) %>% 
+    dplyr::select(-(!!sym(i))) %>% 
     mutate(dance_rooms = Q8_R1_C1,
            music_rooms = Q8_R2_C1,
            theater_rooms = Q8_R3_C1,
            visual_arts_rooms = Q8_R4_C1,
            media_arts_rooms = Q8_R5_C1) %>% 
-    select(ends_with('rooms')) %>%
+    dplyr::select(ends_with('rooms')) %>%
     gather(key = discipline,
            value = num) %>% 
     ggplot(aes(x=num)) +
@@ -694,15 +713,16 @@ for (i in q_elem){
   }
 }
 for (i in q_mid){
-  temp <- df %>% select(i, rooms_ded) %>% 
+  temp <- df %>%
+    dplyr::select(i, rooms_ded) %>% 
     filter((!!sym(i)) > 0) %>% 
-    select(-(!!sym(i))) %>% 
+    dplyr::select(-(!!sym(i))) %>% 
     mutate(dance_rooms = Q8_R1_C1,
            music_rooms = Q8_R2_C1,
            theater_rooms = Q8_R3_C1,
            visual_arts_rooms = Q8_R4_C1,
            media_arts_rooms = Q8_R5_C1) %>% 
-    select(ends_with('rooms')) %>%
+    dplyr::select(ends_with('rooms')) %>%
     gather(key = discipline,
            value = num) %>% 
     ggplot(aes(x=num)) +
@@ -745,7 +765,8 @@ with(m.data1, t.test(perc_34_all_2018_ela ~ rm_ded_media))
 lm.treat1 <- lm(perc_34_all_2018_ela~rm_ded_media, data=m.data1)
 summary(lm.treat1)
 
-lm.treat2 <- m.data1 %>% select(-weights) %>%
+lm.treat2 <- m.data1 %>%
+  dplyr::select(-weights) %>%
   lm(perc_34_all_2018_ela~., .)
 summary(lm.treat2)
 ```
@@ -756,7 +777,10 @@ Matching suggests that rooms dedicated to media arts are associated with schools
 
 ### Technology tools
 
-We can also consider the technology tools available to students. This includes the various cameras, computers, software, and other tools that can be used in the arts. We do not have data on musical instruments or props. It would be interesting to include that information in a future analysis, since it is certainly the case that those resources are integral to music and theater programs.  
+We can also consider the technology tools available to students.
+This includes the various cameras, computers, software, and other tools that can be useful for an arts education.
+The dataset does not include information on musical instruments, props or other non-tech equipment.
+It would be interesting to include that information in a future analysis, since it is certainly the case that those resources are integral to music and theater programs.  
 
 ```{r tools setup}
 q9 <- df %>% colnames() %>% .[grepl('Q9_', .)]
@@ -794,41 +818,114 @@ df %>% dplyr::select(tools) %>% colMeans() %>%
         axis.text.y = element_text(size=12))
 ```
 
-Smartboards and laptops are the most frequently found tools. During my time in school, I never took an art class that used smartboards or laptops. I would hypothesize that these tools have been included erroneously by respondents, as items that are found in the school but are not used specifically for art education.  
-To be expected, the least frequent tools are suites of equipment: interactive distance exchange labs, darkrooms and TV studios.  
-Moving up the list, we find expensive single pieces of equipment such as film cameras, keyboards and lighting. Contrary to my expectations, software packages: music and video editing and animation software, are not particularly prevalent. Photo editing software is the most frequent, found in 28% of schools, and music editing software is the least frequent, found in 20%. 80% of schools have laptops so for only one-quarter of these institutions to have access to music editing software seems like a missed opportunity. These are expensive but I can imagine that Adobe or Microsoft could garner some goodwill by donating licenses to schools for proprietary tools. Otherwise, there are free tools out there, so this gap in tooling could indicate a lack of technological sophistication on the part of teachers and administrators.  
-If there is no benefit to having any of these tools, then efforts to increase their availability would be foolish.  
+Smartboards and laptops are found most frequently.
+During my time in school, I never took an art class that used smartboards or laptops (although I can imagine uses for both).
+I would hypothesize that these tools have been reported by respondents, as items that are found in the school but not specifically in use for arts education.  
+As one would expect, the least frequent tools are suites of equipment: interactive distance exchange labs, darkrooms, and TV studios.  
+Moving up the list, we find expensive single pieces of equipment such as film cameras, keyboards and lighting.
+Contrary to my expectations, software packages - music and video editing and animation - are not among the most commonly found items. Photo editing software is the most frequent, found in 28% of schools, and music editing software is the least frequent, found in 20%.
+80% of schools have laptops, so for only one-quarter of these institutions to have access to music editing software seems like a missed opportunity.
+Enterprise software can be expensive but I can imagine that Adobe or Microsoft could garner some goodwill by donating licenses to schools for their tools.
+Otherwise, there are free substitutes for the market-leading tools, so this gap in tooling could indicate a lack of technological sophistication on the part of teachers and administrators.  
+If there is no benefit to having any of these tools, then efforts to increase their availability would be foolish. We can look at the relationship between these resources and academic performance.  
 
-```{r tools stats}
-df %>% dplyr::select(tools, perc_34_4_2018_ela) %>% 
+```{r tools stats, results='hide'}
+df %>%
+  dplyr::select(tools, perc_34_4_2018_ela) %>% 
   lm(perc_34_4_2018_ela~., data=.) %>% 
   summary()
-df %>% dplyr::select(tools, perc_34_4_2018_math) %>% 
+df %>%
+  dplyr::select(tools, perc_34_4_2018_math) %>% 
   lm(perc_34_4_2018_math~., data=.) %>% 
   summary()
 ```
 
-Animation software has a significant positive coefficient for English and math (p-values 0.01 and 0.05, respectively) and digital drawing tablets have a significant negative coefficient for English and math (p-values 0.01 for both). There are some other tools that have p-values less than 0.1, lighting equipment, film cameras, color printers, scanners, music editing software, and iPads. Does this effect remain if we control for wealth? Although these are not the most expensive tools, I have a suspicion that the presence of these tools might be statistically related to wealth either directly or through a common causal variable.  
+Animation software has a statistically significant positive coefficient for English and math, p-values 0.00447 and 0.02851, respectively. 
+Digital drawing tablets have a significant negative coefficient for English and math, p-values 0.00872 and 0.00653.
+These are relatively eccentric items, animation software is found in 23% of schools and digital drawing tablets in 12%.
+For these to have the most significant coefficients indicates that we lack data or that the relationships are being confounded somehow.
+One route forward would be to seek out similar information from other cities, but we can also look at whether these effects remain if we control for wealth?
+Although these are not the most expensive tools, I have a hypothesis that the presence of these tools is statistically related to wealth.
+This relationship could be direct or through a common causal variable.  
 
-```{r tools stats ctrl wealth}
-df %>% dplyr::select(tools, perc_pov_2017, perc_34_4_2018_ela) %>% 
+```{r tools stats ctrl wealth summary, results='hide'}
+df %>%
+  dplyr::select(tools, perc_pov_2017,
+                perc_34_4_2018_ela) %>% 
   lm(perc_34_4_2018_ela~., data=.) %>% 
   summary()
-df %>% dplyr::select(tools, perc_pov_2017, perc_34_4_2018_math) %>% 
+df %>%
+  dplyr::select(tools, perc_pov_2017,
+                perc_34_4_2018_math) %>% 
   lm(perc_34_4_2018_math~., data=.) %>% 
   summary()
 ```
 
-After controlling for wealth, animation software and digital drawing tablets lose their statistical significance. Instead, scanners have a significant positive coefficient for English and math (p-values 0.01 for both), DVD players have a significant positive coefficient for math (p-value 0.01). Other significant tools include, digital video cameras (negative for English and math), lighting equipment (positive for English), and iPads (positive for math). The inclusion of a single variable, the percentage of poverty in a school, has totally removed the significance we would have placed upon the presence of animation software and digital drawing tablets, which are on the niche side of the technology tool spectrum. Now we get the idea that more rudimentary and widely applicable tools, scanners and DVD players, could be distributed to improve academic performance (both are found in about one-quarter of schools).  
+```{r tools stats ctrl wealth confint}
+df %>%
+  dplyr::select(tools, perc_pov_2017,
+                perc_34_4_2018_ela) %>% 
+  lm(perc_34_4_2018_ela~., data=.) %>% 
+  confint()
+df %>%
+  dplyr::select(tools, perc_pov_2017,
+                perc_34_4_2018_math) %>% 
+  lm(perc_34_4_2018_math~., data=.) %>% 
+  confint()
+```
+
+After controlling for wealth, animation software and digital drawing tablets lose their statistical significance.
+Instead, scanners have a significant positive coefficient for English and math, p-values fo 0.00328 and 0.00317.
+DVD players have a significant positive coefficient for math, p-value 0.00647.
+The inclusion of a single variable, the percentage of poverty in the student population, has totally removed the significance we initially found for the presence of animation software and digital drawing tablets, which are on the niche side of the technology tool spectrum.
+Now we get the idea that more rudimentary and widely applicable tools - scanners are found in 37% of schools and DVD players in 41% - are correlated with academic performance.
+That these tools are not exclusively useful in the context of an arts education, unlike MIDI Keyboards, brings up the possibility that the mechanism for these positive coefficients is not through arts education.
+Instead, perhaps students from these schools are able to scan their history assignments or watch science documentaries on DVD instead of on VHS and their grades benefit.  
+
+Which tools are most correlated with demographics of the student population, in particular student wealth?
+
+```{r tools by wealth}
+q_demo_2017 <- q_demo %>% .[grepl('2017', .)]
+q_demo_2017_regr <- c(q_demo_2017[c(3,9)],
+                      q_demo_2017 %>% .[grepl('perc', .)])
+q_demo_2017_temp <- q_demo_2017_regr[-2]
+for (i in tools) {
+  df_temp <- df %>% 
+    dplyr::select(i, q_demo_2017_temp)
+  formula_temp <- paste(q_demo_2017_temp,
+                        collapse='+')
+  target_temp <- paste('`', i, '`', sep='')
+  formula_temp <- paste(target_temp, formula_temp,
+                        sep='~')
+  fit <- glm(formula_temp, data=df_temp,
+             family='binomial')
+  if (i %in% c('iPad/iPad mini/iPod',
+               'Lighting Equipment')) {
+    print(i); print(fit %>% summary())
+    }
+}
+```
+
+iPads and lighting equipment have statistically significant positive coefficients for the percentage of disabled students, p-values 0.00306 and 0.00191.
+We can post hoc justify the relation with iPads as an effort to make content and creativity more accessible to students that might have had difficulties working with other media.
+That there is a similar coefficient for lighting equipment does not initially make sense to me.
+Since we are controlling for school size and wealth I would not think that we are picking up confounding from that source, but perhaps there is still some confounding.
+The percentage of students in poverty is most significantly correlated with MIDI keyboards, an expensive piece of equipment.
+We can take it as a good sign that no tools are particularly correlated with the wealth of a school's student population. 
+Instead, the most predictive demographic feature for the presence of any of these tools is the size of the student body. For most tools - the exception being interactive distance exchange labs - this is a positive coefficient, and statistically significant at a p-value of 0.001.  
 
 ## Part Five
 
 ### Borough
 
-We have found that controlling for demographic information, in the form of wealth and racial make-up, can have a great effect on our analyses. This leads to the question of how finely-grained the demographics need to be. Diversity is widely variable across the city. According to the 2000 US Census, 59.2% of West Queens residents were foreign-born and while only 11.9% of residents of the South Shore of Staten Island were foreign-born. There is similar diversity in the percentage of residents living in poverty, 38.2% in East Harlem and just 6.6% in the Upper East Side.  
-Let us look at the possibility that there is a correlation between a school's borough and student academic performance.  
+We have found that controlling for demographic information, in the form of wealth and racial make-up, can greatly effect our analyses.
+This leads to the question of how finely-grained should the demographic features which we consider be.
+Diversity is widely variable across the city.
+According to the [2000 US Census](https://www1.nyc.gov/site/planning/data-maps/nyc-population/census-2000.page), 59.2% of West Queens residents were foreign-born while only 11.9% of residents of the South Shore of Staten Island were foreign-born.
+There is similar diversity in the percentage of residents living in poverty, 38.2% in East Harlem and just 6.6% in the Upper East Side.  
+Let us look at the possibility that there is a correlation between the borough of a school and their students' academic performance.  
 
-```{r boroughs setup}
+```{r boroughs setup, results='hide'}
 #Extract boroughs
 df$boro <- df$Q0_DBN %>% str_extract('\\D')
 df <- df %>% mutate(
@@ -843,7 +940,7 @@ df <- df %>% mutate(
 ```{r boroughs viz}
 boro_levels <- df %>% group_by(boro) %>%
   count() %>% arrange(desc(n)) %>%
-  select(boro) %>% pull()
+  dplyr::select(boro) %>% pull()
 df %>% 
   mutate(boro = factor(boro,
                        levels=boro_levels)) %>% 
@@ -854,44 +951,579 @@ df %>%
                             'M'='Manhattan',
                             'Q'='Queens',
                             'R'='Staten Island')) +
-  xlab('') +
+  xlab('') + ylab('Frequency') +
+  ggtitle('Number of schools by borough') +
   theme_eric()
 ```
 
 ```{r boroughs performance}
 df %>%
-  select(perc_34_4_2018_ela, K, X, M, Q, R) %>% 
+  dplyr::select(perc_34_4_2018_ela,
+                K, X, M, Q, R) %>% 
   lm(perc_34_4_2018_ela~., data=.) %>% 
   summary()
 df %>%
-  select(perc_34_4_2018_math, K, X, M, Q, R) %>% 
+  dplyr::select(perc_34_4_2018_math,
+                K, X, M, Q, R) %>% 
   lm(perc_34_4_2018_math~., data=.) %>% 
   summary()
 ```
 
-Belonging to the Bronx has a significant negative coefficient for English and math scores. Brooklyn has a less significant negative coefficient, but only for English scores and less negative than that of the Bronx. A 95% confidence interval on the coefficient for the Bronx on English scores is [-29.8,-14.9] and for Brooklyn [-15.2,-1.0]. Manhattan and Queens did not have statistically significant coefficients, and we do not have enough Staten Island schools to get a result for them (with only 63 of our 1193 schools).  
+Belonging to the Bronx has a significant negative coefficient for English and math scores.
+Brooklyn has a less significant negative coefficient, but only for English scores and less negative than that of the Bronx.  
+A 95% confidence interval on the coefficient for the Bronx on English scores is [-29.8,-14.9] and for Brooklyn [-15.2,-1.0].
+Manhattan and Queens did not have statistically significant coefficients, and we do not have enough Staten Island schools to get a result for them (with only 63 of our 1193 schools).  
 
 ```{r borough confint}
+print('ELA')
 df %>%
-  select(perc_34_4_2018_ela, K, X, M, Q, R) %>% 
+  dplyr::select(perc_34_4_2018_ela,
+                K, X, M, Q, R) %>% 
   lm(perc_34_4_2018_ela~., data=.) %>% 
   confint()
+print('Math')
 df %>%
-  select(perc_34_4_2018_math, K, X, M, Q, R) %>% 
+  dplyr::select(perc_34_4_2018_math,
+         K, X, M, Q, R) %>% 
   lm(perc_34_4_2018_math~., data=.) %>% 
   confint()
 ```
 
-Consider the tremendous diversity within each borough. For example, the difference in poverty levels within Manhattan we pointed to earlier in the comparison of East Harlem and the Upper East Side. Perhaps controlling for some demographic information will alter the results of our regression analyses.  
+Consider, for a moment, the tremendous diversity within each borough.
+For example, the difference in poverty levels within Manhattan we pointed to earlier in the comparison of East Harlem and the Upper East Side.
+Perhaps controlling for demographic information on a school level will alter the results of our regression analyses.  
 
 ```{r boroughs performance ctrl}
-df %>% select(perc_34_4_2018_ela, perc_black_2017, perc_pov_2017, K, X, M, Q, R) %>% 
+print('ELA')
+df %>%
+  dplyr::select(perc_34_4_2018_ela, perc_black_2017, perc_pov_2017, K, X, M, Q, R) %>% 
   lm(perc_34_4_2018_ela~., data=.) %>% 
   summary()
-df %>% select(perc_34_4_2018_math, perc_black_2017, perc_pov_2017, K, X, M, Q, R) %>% 
+print('Math')
+df %>%
+  dplyr::select(perc_34_4_2018_math, perc_black_2017, perc_pov_2017, K, X, M, Q, R) %>% 
   lm(perc_34_4_2018_math~., data=.) %>% 
   summary()
 ```
 
+Controlling for the percentage of black students and of impoverished students removes the statistical significance of the negative coefficient for the Bronx (for both English and math).
+Instead, for English scores, belonging to Brooklyn or Queens is associated with a positive coefficient (p-values 0.0322 and 0.0414). The 95% confidence interval for Brooklyn is [0.452,10.166] and for Queens is [0.198,9.886].
+For math scores, Brooklyn and Queens are still the only boroughs with statistically significant coefficients, this time at p-values of 0.000301 and 0.0000574.
+A 95% confidence interval for the coefficient for Brooklyn on math scores is [4.713,15.783] and for Queens [5.871,16.913].  
+
+```{r boroughs performance confint ctrl}
+print('ELA')
+df %>%
+  dplyr::select(perc_34_4_2018_ela, perc_black_2017, perc_pov_2017, K, X, M, Q, R) %>% 
+  lm(perc_34_4_2018_ela~., data=.) %>% 
+  confint()
+print('Math')
+df %>%
+  dplyr::select(perc_34_4_2018_math, perc_black_2017, perc_pov_2017, K, X, M, Q, R) %>% 
+  lm(perc_34_4_2018_math~., data=.) %>% 
+  confint()
+```
+
+It is certainly possible that there are confounding variables at play in this analysis.
+For example, although we controlled for the wealth of student families through the percentage of students in poverty, this does not explicitly cover differences in school budgets.
+There could be benefits to academic performance from having many students with well-educated parents or being located in a safe neighborhood, and these have not been controlled for.  
+
+## Part Six
+
+### Arts Instructional Hours by Cultural Organizations, Fourth Grade
+
+In the fourth-grade, standardized test scores are used to determine which middle schools a student will be able to attend.
+Since this dataset does not contain information on exam performance on the specialized high-school exams (used for admission into the elite NYC public high schools), this is the most interesting year we could focus on.
+Schools were asked to report the number of instructional hours provided by cultural organizations in dance, music, theater and visual arts.  
+Potential oversights in the data include the number of instructional hours available to each student.
+For example, if a school of two hundred students is given ten hours of dance instruction, we cannot determine if twenty students attended the instruction over several days, or if ten groups of twenty students attended just one of ten separate events.  
+The number of hours provided by cultural organizations is also not equivalent to the total number of hours of arts instruction in the school.
+It is possible that poorer schools are receiving most of this type of instruction since they have been identified as deserving targets.
+However, it is just as possible that wealthier schools with active administrators are going after cultural organizations to further enrich their students' educations.  
+
+```{r 4th grade hrs setup, results='hide'}
+q16 <- df %>% colnames() %>% .[grepl('Q16_', .)]
+df <- df %>% rowwise() %>% 
+  mutate(
+    dance_hr = sum(Q16_C1_R1 + Q16_C2_R1 ,  Q16_C3_R1 ,  Q16_C4_R1 ,  Q16_C5_R1 ,  Q16_C6_R1 ,  Q16_C7_R1 ,  Q16_C8_R1 ,  Q16_C9_R1 ,  Q16_C10_R1 ,  Q16_C11_R1 ,  Q16_C12_R1 ,  Q16_C13_R1 ,  Q16_C14_R1, na.rm = T),
+    music_hr = sum(Q16_C1_R2 ,  Q16_C2_R2 ,  Q16_C3_R2 ,  Q16_C4_R2 ,  Q16_C5_R2 ,  Q16_C6_R2 ,  Q16_C7_R2 ,  Q16_C8_R2 ,  Q16_C9_R2 ,  Q16_C10_R2 ,  Q16_C11_R2 ,  Q16_C12_R2 ,  Q16_C13_R2 ,  Q16_C14_R2, na.rm = T),
+    thtr_hr = sum(Q16_C1_R3 ,  Q16_C2_R3 ,  Q16_C3_R1 ,  Q16_C4_R1 ,  Q16_C5_R3 ,  Q16_C6_R3 ,  Q16_C7_R3 ,  Q16_C8_R3 ,  Q16_C9_R3 ,  Q16_C10_R3 ,  Q16_C11_R3 ,  Q16_C12_R3 ,  Q16_C13_R3 ,  Q16_C14_R1, na.rm = T),
+    visart_hr = sum(Q16_C1_R4 ,  Q16_C2_R4 ,  Q16_C3_R4 ,  Q16_C4_R4 ,  Q16_C5_R4 ,  Q16_C6_R4 ,  Q16_C7_R4 ,  Q16_C8_R4 ,  Q16_C9_R4 ,  Q16_C10_R4 ,  Q16_C11_R4 ,  Q16_C12_R4 ,  Q16_C13_R4 ,  Q16_C14_R4, na.rm = T)
+  )
+q_4th_hrs <- df %>% colnames() %>% .[grepl('_hr', .)]
+```
+
+```{r 4th grade hrs dist viz}
+dance_lim <- df %>%
+  dplyr::select(dance_hr) %>% pull %>% 
+  quantile(., c(0.95))
+music_lim <- df %>%
+  dplyr::select(music_hr) %>% pull %>% 
+  quantile(., c(0.95))
+thtr_lim <- df %>%
+  dplyr::select(thtr_hr) %>% pull %>% 
+  quantile(., c(0.95))
+visart_lim <- df %>%
+  dplyr::select(visart_hr) %>% pull %>% 
+  quantile(., c(0.95))
+g1 <- df %>% dplyr::select(q_4th_hrs) %>% 
+  ggplot() +
+  geom_histogram(aes(dance_hr), bins=40) +
+  xlim(0, dance_lim) + ylim(0, 30) +
+  xlab('Hours of instruction') +
+  ggtitle('Dance')
+g2 <- df %>% dplyr::select(q_4th_hrs) %>% 
+  ggplot() +
+  geom_histogram(aes(music_hr), bins=40) +
+  xlim(0, dance_lim) + ylim(0, 30) +
+  xlab('Hours of instruction') +
+  ggtitle('Music')
+g3 <- df %>% dplyr::select(q_4th_hrs) %>% 
+  ggplot() +
+  geom_histogram(aes(thtr_hr), bins=40) +
+  xlim(0, dance_lim) + ylim(0, 30) +
+  xlab('Hours of instruction') +
+  ggtitle('Theater')
+g4 <- df %>% dplyr::select(q_4th_hrs) %>% 
+  ggplot() +
+  geom_histogram(aes(visart_hr), bins=40) +
+  xlim(0, dance_lim) + ylim(0, 30) +
+  xlab('Hours of instruction') +
+  ggtitle('Visual Arts')
+figure <- ggarrange(g1, g2, g3, g4,
+                    labels = c('1', '2', '3', '4'),
+                    ncol = 2,
+                    nrow = 2)
+figure
+```
+
+Looking at the distribution of instructional hours for fourth-graders, we observe that schools tended to report instructional hours in multiples of ten.
+This does not necessarily throw doubt on the accuracy of school records, since schools may have engaged cultural organizations to provide instruction for round-numbered lengths of time.  
+We may also observe that the instructional hours in all disciplines drop off after the sixty hour mark.
+There are some schools that received over one-hundred hours of arts instruction from outside organizations.
+A natural question is whether the schools receiving the most dance instruction are the same as those receiving the most music, theater or visual arts instruction.
+In other words, how well-correlated are instructional hours across disciplines?  
+
+```{r 4th grade hrs corr}
+library(ComplexHeatmap)
+library(circlize)
+cor_heatmap <- df %>%
+  dplyr::select(q_4th_hrs) %>%
+  dplyr::select(`Visual arts`=visart_hr,
+                Theater=thtr_hr,
+                Music=music_hr,
+                Dance=dance_hr) %>% 
+  as.matrix() %>%
+  cor()
+col_fun = colorRamp2(c(0, 1),
+                     c('white', 'red'))
+Heatmap(cor_heatmap,
+        name='mat',
+        col=col_fun,
+        heatmap_legend_param=list(
+          title='Correlation',
+          legend_height=unit(8, 'cm')
+        ), cell_fun=function(j,i,x,y,width,height,fill) {
+          grid.text(sprintf('%.2f',
+                            cor_heatmap[i,j]),
+                    x, y, gp=gpar(fontsize=30))
+        })
+```
+
+The correlation of instructional hours across disciplines is high within the group of dance, music and theater.
+In other words, schools that receive a high level of instructional hours in dance tend to receive high levels in music and theater.
+There is also correlation with visual arts for all of those disciplines, but to a lesser degree than exists within that group.  
+
+```{r 4th grade hrs perf viz, results='hide'}
+g1 <- df %>% dplyr::select(q_4th_hrs, perc_34_4_2018) %>% 
+  ggplot(aes(x = dance_hr, y = perc_34_4_2018_ela)) +
+  geom_point() + xlim(c(0, 600))
+g2 <- df %>% dplyr::select(q_4th_hrs, perc_34_4_2018) %>% 
+  ggplot(aes(x = music_hr, y = perc_34_4_2018_ela)) +
+  geom_point() + xlim(c(0, 600))
+g3 <- df %>% dplyr::select(q_4th_hrs, perc_34_4_2018) %>% 
+  ggplot(aes(x = thtr_hr, y = perc_34_4_2018_ela)) +
+  geom_point() + xlim(c(0, 600))
+g4 <- df %>% dplyr::select(q_4th_hrs, perc_34_4_2018) %>% 
+  ggplot(aes(x = visart_hr, y = perc_34_4_2018_ela)) +
+  geom_point() + xlim(c(0, 600))
+figure <- ggarrange(g1, g2, g3, g4,
+                    labels = c('1', '2', '3', '4'),
+                    ncol = 2,
+                    nrow = 2)
+# Do not show
+# figure
+```
+
+Now let us look at the relationship between student demographics and arts instructional hours from cultural organizations.  
+
+```{r 4th grade hrs demo, results='hide'}
+q_demo_2017 <- q_demo %>% .[grepl('2017', .)]
+q_demo_2017_regr <- c(q_demo_2017[c(3,9)],
+                      q_demo_2017 %>% .[grepl('perc', .)])
+
+fit_dance <- lm(dance_hr~.,
+          data=dplyr::select(df,
+                             q_demo_2017_regr,
+                             dance_hr))
+step_dance <- stepAIC(fit_dance, direction='both')
+fit_music <- lm(music_hr~.,
+          data=dplyr::select(df,
+                             q_demo_2017_regr,
+                             music_hr))
+step_music <- stepAIC(fit_music, direction='both')
+fit_thtr <- lm(thtr_hr~.,
+          data=dplyr::select(df,
+                             q_demo_2017_regr,
+                             thtr_hr))
+step_thtr <- stepAIC(fit_thtr, direction='both')
+fit_visart <- lm(visart_hr~.,
+          data=dplyr::select(df,
+                             q_demo_2017_regr,
+                             visart_hr))
+step_visart <- stepAIC(fit_visart, direction='both')
+```
+
+```{r 4th grade hrs demo results}
+print('Dance')
+step_dance %>% summary()
+print('Music')
+step_music %>% summary()
+print('Theater')
+step_thtr %>% summary()
+print('Visual Arts')
+step_visart %>% summary()
+```
+
+We fit a linear model to the number of instructional hours provided by cultural organizations using demographic features.
+For all disciplines, the only statistically significant feature is the number of fourth-graders.
+The coefficients for this feature are positive for each discipline and are significant at a p-value of 0.01 for dance and music and 0.05 for theater and visual arts.  
+For the visual arts alone, stepwise feature selection results in other features that are significant at a p-value of 0.1. These others are the racial demographic features - the percentage of asian, black, hispanic, and white students in a school.  
+That the number of students was the most significant feature, rather than race, gender or wealth, indicates that the distribution of attention from cultural organizations is not biased by wealth.  
+Is there any benefit to student academic performance from additional arts instruction?
+
+```{r 4th grade hours perf}
+print('ELA')
+df %>%
+  dplyr::select(q_4th_hrs, perc_34_4_2018_ela) %>% 
+  lm(perc_34_4_2018_ela~., data=.) %>% 
+  summary()
+print('Math')
+df %>%
+  dplyr::select(q_4th_hrs, perc_34_4_2018_math) %>% 
+  lm(perc_34_4_2018_math~., data=.) %>% 
+  summary()
+```
+
+No discipline of arts instruction has a statistically significant effect on academic performance, in neither English nor math.
+Does this finding change if we control for demographics, in particular the number of fourth-graders?  
+
+```{r 4th grade hours perf ctrl}
+df %>%
+  dplyr::select(q_4th_hrs, perc_34_4_2018_ela, grd_4_2017) %>% 
+  lm(perc_34_4_2018_ela~., data=.) %>% 
+  summary()
+df %>%
+  dplyr::select(q_4th_hrs, perc_34_4_2018_math, grd_4_2017) %>% 
+  lm(perc_34_4_2018_math~., data=.) %>% 
+  summary()
+```
+
+Controlling for the number of fourth-graders does not alter our findings.
+Upon reflection, this is not particularly surprising. Considering that the link between arts instruction and academic performance is uncertain and this particular type of instruction is not well-defined.  
+
+## Part Seven
+
+### Screened Arts Programs
+
+```{r screened arts init, results='hide'}
+n_screen <- df %>%
+  dplyr::select(Q20_1) %>%
+  sum()
+df_middle <- df %>%
+  filter(grd_6_2017 > 0 | grd_7_2017 > 0 | grd_8_2017 > 0)
+n_middle <- df_middle %>% nrow()
+n_screen
+n_screen / n_middle
+```
+
+Only 24 middle schools have screened arts programs, that is 6% of the middle schools in our dataset.
+We can look at whether certain demographic features are associated with the presence of these programs.    
+
+```{r screened arts middle school, results='hide'}
+q_demo_2017_mid <- c(q_demo_2017_regr[-2], 
+                     'grd_6_2017', 
+                     'grd_7_2017', 
+                     'grd_8_2017')
+fit_middle <- glm(Q20_1~.,
+   data=dplyr::select(df_middle,
+                      q_demo_2017_mid,
+                      Q20_1),
+   family='binomial')
+step_middle <- stepAIC(fit_middle,
+                       direction='both')
+```
+
+```{r screened arts middle school results}
+fit_middle %>% summary()
+step_middle %>% summary()
+```
+
+We fit a logistic regression to the presence of a screened arts program, regressing on demographic features and restricting the dataset to middle schools.
+When we perform stepwise feature selection on this model, we find that the percentage of female students has a statistically significant positive coefficient with a p-value of 0.00606.
+The percentage of asian, black and hispanic students have statistically significant negative coefficients with p-values at the 0.05 level.
+The number of sixth-graders has a postive coefficient with a p-value at the 0.05 level, too.  
+Interpreting these results, schools with a screened arts program tend to have more female students (not necessarily a causal relationship) and to be larger.
+The part about being larger makes sense, since a large school is more likely to have any feature, be it a Latin class or wheelchair ramps.
+On the unfortunate side of things, one could say that minority students are not being served by screened arts programs.
+Perhaps this could be addressed by improving arts education in primary schools with minority students or helping families to better navigate the application process for schools with screened arts programs.  
+We can run a Wald test to determine if the coefficient for minority students as a whole - asian, black and hispanic - is significant.  
+
+```{r screened arts middle school wald}
+# Overall effect of perc_asian, _black and _hisp
+wald.test(b=coef(step_middle),
+          Sigma=vcov(step_middle),
+          Terms=4:6)
+```
+
+The p-value of 0.0025 allows us to reject the null hypothesis that the percentage of minority students has a coefficient of zero in the relationship with screened arts programs.  
+We can also present our coefficients in a more interpretable way, log-odds.  
+
+```{r screened arts middle school log-odds}
+exp(confint(step_middle))
+exp(coef(step_middle))
+```
+
+First, a 95% confidence interval for the log-odds of the features in the relation with screened arts programs.
+The log-odds for the percentage of female students has a 95% confidence interval of [1.012,1.088].
+An additional percentage point of female students in a school's gender split is associated with an increase in the probability of a screened arts program of between 1% and 9%.
+When phrased in this way it seems like a rather tenuous assertion, in the data 50% of schools have a percentage of female students between 46% and 51%.
+The gender makeup of a school is likely harder to swing by a whole percentage point than race or wealth metrics.  
+The percentage of asian, black, and hispanic students are associated with confidence intervals of [0.929,0.994], [0.950,0.994], and [0.949,0.994] log-odds for the probability of a school having a screened arts program, respectively.  
+We cannot extrapolate from these results that a school with 90% white students will definitely have a screened arts program or that a school with 90% black and hispanic students will not.
+It does give food for thought with regards to the distribution of these programs.
+We can take a look at whether schools with screened arts programs do well in terms of academic performance.
+Seventh grade academic performance will be used as a representative for middle-school performance.
+This is the grade during which students take standardized tests which determine their high-school choices.  
+
 TODO
-Controlling for the percentage of black students and of poor students removed the statistical significance of the negative coefficient for the Bronx, and results in a positive statistically significant effect for Brooklyn.
+```{r screened arts perf}
+fit_scr_ela <- lm(perc_34_7_2017_ela~.,
+   data=dplyr::select(df_middle,
+              Q20_1,
+              perc_34_7_2017_ela,
+              q_demo_2017_mid))
+
+step_scr_ela <- stepAIC(fit_scr_ela,
+                        direction='both')
+fit_scr_math <- lm(perc_34_7_2017_math~.,
+   data=dplyr::select(df_middle,
+              Q20_1,
+              perc_34_7_2017_math,
+              q_demo_2017_mid))
+step_scr_math <- stepAIC(fit_scr_math,
+                        direction='both')
+fit_scr_ela %>% summary()
+step_scr_ela %>% summary()
+fit_scr_math %>% summary()
+step_scr_math %>% summary()
+```
+
+Fitting a linear regression, for either English or math performance, to having a screened arts program does not yield a statistically significant coefficient. This holds true when we control for school demographic data, too.  
+
+## Part Eight
+
+### Middle school arts sequence
+
+Some middle schools offer a three-year sequence of instruction in a single arts discipline. This could be a major differentiating factor in the arts education of participating students, as opposed to a single music class in seventh-grade. Since our data is on the school-level we cannot control for participation in these programs for individual students. It may be doubtful that the presence of such sequences would have a significant effect on an entire school, but we can still have a look.  
+
+```{r 3yr sequence setup}
+q22 <- df %>% colnames() %>% .[grepl('Q22', .)] %>% .[grepl('_C1', .)]
+df_middle %>% dplyr::select(q22) %>%
+  colSums() %>% 
+  as_data_frame() %>% 
+  ggplot(aes(x=disc_5, y=value)) +
+  geom_bar(stat='identity')
+```
+
+There are many visual arts and music sequences. Fewer schools have dance or theater sequences, and very few have one in film.
+
+TODO
+Look at whether demographic features correlate with the presence of arts sequences.
+
+```{r 3yr sequence perf}
+# R1-R5 Dance, Film, Music, Theater, Visual arts
+fit_seq_ela <- lm(perc_34_7_2017_ela~.,
+   data=dplyr::select(df_middle,
+              q22,
+              perc_34_7_2017_ela,
+              q_demo_2017_mid))
+step_seq_ela <- stepAIC(fit_seq_ela,
+                        direction='both')
+fit_seq_math <- lm(perc_34_7_2017_math~.,
+   data=dplyr::select(df_middle,
+              q22,
+              perc_34_7_2017_math,
+              q_demo_2017_mid))
+step_seq_math <- stepAIC(fit_seq_math,
+                        direction='both')
+fit_seq_ela %>% summary()
+step_seq_ela %>% summary()
+fit_seq_math %>% summary()
+step_seq_math %>% summary()
+```
+
+Visual arts sequences have a statistically significant positive coefficient for math scores, at a p-value of 0.01. This is the only arts discipline to have a statistically significant coefficient, controlling for school demographic features.  
+
+## Part Nine
+
+### Non-DOE Funding
+
+Schools were asked whether they received funding for arts education from sources other than the Department of Education (DOE).
+One would hope that schools with poor, minority students received at least as much external funding as the wealthier and whiter schools.
+We can also look at whether there is an association between academic performance and external funding.
+The direction of any relationship between academic performance and funding would be ambiguous. It is possible that funding flows to overperforming schools as their status attracts donors to them or that the additional funding causes increased academic performance.
+To tease this relationship apart we would need to identify an instrumental variable.  
+
+```{r arts funding sources}
+q36 <- q_arts %>% .[grepl('Q36', .)] %>% .[grepl('C1', .)]
+fund_srcs <- c('Cultural organizations',
+               'Education association',
+               'Federal, state, or city grants',
+               'Local business or corporation',
+               'Private foundation',
+               'PTA/PA',
+               'State, county, local arts councils')
+df %>% dplyr::select(q36) %>%
+  colSums() %>% 
+  as_data_frame() %>% 
+  ggplot(aes(x=reorder(fund_srcs,
+                       -value),
+             y=value)) +
+  geom_bar(stat='identity') +
+  xlab('') +
+  ggtitle('Frequency of external funding sources') +
+  theme(axis.text=element_text(size=14)) +
+  coord_flip()
+```
+
+Government grants are the most common source of non-DOE funding, followed by cultural organizations, and PTA. Educational associations and local business are the least common sources of arts funding.  
+
+Does poverty predict any of the different sources of funding?  
+
+```{r art funding poverty}
+for (i in q36) {
+  temp <- df %>%
+    dplyr::select(i, perc_pov_2017)
+  temp.glm <- glm(unlist(temp[,1])~unlist(temp[,2]), family='binomial')
+  print(i); print(summary(temp.glm))
+}
+```
+
+Poverty has a statistically significant negative coefficient for PTA/PA funding at a p-value of 0.001 and local arts councils at a p-value of 0.01. Could this effect be clarified by controlling for additional features?
+
+```{r art funding poverty ctrl black}
+for (i in q36) {
+  temp <- df %>% dplyr::select(i, perc_pov_2017, perc_black_2017)
+  temp.glm <- glm(unlist(temp[,1])~unlist(temp[,2])+unlist(temp[,3]), family='binomial')
+  print(i); print(summary(temp.glm))
+}
+```
+
+Now we are performing a binomial regression for each source of funding upon the percentage of impoverished and black students.
+Government grants have a statistically significant positive coefficient for percentage of students in poverty, p-value 0.01, and a negative coefficient for percentage of black students, p-value 0.001.
+PTA funding has a statistically significant negative coefficient for percentage of students in poverty and black students, both at p-values of 0.001.
+These results tell us that funding from government grants tends to flow to schools with poor students and not to those with black students. PTA funding does not tend to flow to poor schools or schools with black students.
+The finding about government grants going to poor schools is hopeful, since these schools are evidently not receiving much funding from PTAs. On the other hand, that government grants are not going to schools with black students is a source of concern. We have not shown that there is a causal relationship, but this correlation should be investigated further.
+Our findings about the direction of PTA funding to richer and whiter schools is should not be surprising. An active PTA can be the difference between whether a school can afford to purchase newly published textbooks or has to stick with science books from the 2000s. The current system will allocate funding from parent donors to their own children's schools, so schools serving wealthier students will benefit most from this source of funding.  
+
+```{r art funding poverty ctrl other}
+for (i in q36) {
+  temp <- df %>% dplyr::select(i, perc_pov_2017, perc_black_2017, total_enrollment_2017, perc_34_all_2018)
+  temp.glm <- glm(unlist(temp[,1])~unlist(temp[,2])+unlist(temp[,3])+unlist(temp[,4])+unlist(temp[,5]), family='binomial')
+  print(i); print(summary(temp.glm))
+}
+```
+
+Now we have tried controlling for poverty, percentage of black students, total enrollment, and academic performance.
+Funding from government grants still has a statistically significant negative coefficient for percentage of black students, at a p-value of 0.01. The coefficient for students in poverty is no longer significant. 
+PTA funding has a statistically significant negative coefficient for poverty at a p-value of 0.001. The coefficient for percentage of black students is no longer significant.
+Funding from arts councils has a statistically significant positive coefficient for student population at a p-value of 0.01.  
+That the association between government grants and percentage of black students continues to be a negative one is unfortunate news. As is the lack of an association with poor student populations, whom we would have hoped to receive more funding from this source.
+For PTA funding, controlling for the additional features has removed the significant coefficient for all but the wealth of the student population. As we mentioned earlier, this association is a direct by-product of the PTA system and to be expected. 
+Funding from arts councils has a newly significant association with the size of a school's population. This is interesting because we can postulate reasons for this association, such as greater resources available to large schools allowing them to apply to these councils for funding or greater visibility for large schools to attract council attention. These two mechanisms could be addressed by educating small schools about seeking funding from arts councils or educating the councils about the needs of small schools. It is also possible that the reason is structural, large schools cover more and larger local arts councils which results in their being the recipient of more funding from this source.  
+
+## Part Ten
+
+### Parental Involvement
+
+Schools were asked about whether parents participated in their arts programs in one of the following ways: attending events, volunteering, donating supplies or other. We can hypothesize that the same schools as receive PTA funding are the ones that have a lot of parental involvement.  
+
+```{r parental inv setup}
+q39 <- q_arts %>% .[grepl('Q39', .)]
+par_inv <- c('Attending school arts events',
+             'Volunteering in arts programs',
+             'Donating arts materials',
+             'Other')
+df %>% dplyr::select(Q39_4, Q0_DBN) %>% 
+  group_by(Q39_4) %>% count() %>% 
+  arrange(desc(n)) %>% head()
+```
+
+It could be neat to analyze the 'Other' category. For now I'll move the comments over and replace them with 1s.
+
+```{r parental inv mutate}
+df$Q39_Other <- df$Q39_4
+df <- df %>% 
+  mutate(Q39_4 = ifelse(Q39_4 == 0, 0, 1))
+#Move 'Other' over to another column
+df %>% dplyr::select(q39) %>% colSums() %>% 
+  as_data_frame() %>% 
+  ggplot(aes(x=reorder(par_inv, -value),
+             y=value / df %>% nrow())) +
+  geom_bar(stat='identity') +
+  xlab('') + ylab('Proportion of schools') +
+  theme(axis.text=element_text(size=14)) +
+  coord_flip()
+```
+
+Parental participation is most commonly found in the form of attendance at school events. This is the least time-intensive and most emotionally rewarding of the options and fewer parents volunteer or donate art materials.  
+
+Is there a relationship between poverty and volunteering in arts programs?
+
+```{r parental inv volunteer}
+df %>% 
+  dplyr::select(Q39_2, perc_pov_2017, total_enrollment_2017, perc_34_all_2018) %>% 
+  glm(Q39_2~., data=., family='binomial') %>% 
+  summary()
+```
+
+There is a statistically significant negative coefficient for the relationship between poverty and parental volunteering in arts programs at a p-value of 0.01, even after controlling for school size and academic performance.  
+
+Is there a relationship between poverty and donating arts materials, Q39_3?
+
+```{r parental inv donation}
+df %>% 
+  dplyr::select(Q39_3, perc_pov_2017, total_enrollment_2017, perc_34_all_2018) %>% 
+  glm(Q39_3~., data=., family='binomial') %>% 
+  summary()
+```
+
+There is a statisically significant negative coefficient for the relationship between poverty and donating arts materials at a p-value of 0.001.  
+We can explicitly look at the correlation between schools receiving funding from their PTAs and parental involvement in the arts.
+
+```{r parental inv corr}
+library(lattice)
+df %>%
+  dplyr::select(q39, Q36_R6_C1) %>% 
+  dplyr::select('Attending events'=Q39_1,
+                'Volunteering'=Q39_2,
+                'Donations'=Q39_3,
+                'Other'=Q39_4,
+                'PTA Funding'=Q36_R6_C1) %>% 
+  cor() %>% 
+  levelplot(col.regions=heat.colors(100)[length(heat.colors(100)):1],
+            xlab='', ylab='')
+```
+
+Of the different manners in which parents can become involved with arts programs directly, PTA funding is most closely associated with donations. This makes sense if we consider that schools reporting parental involvement through donations have taken these into consideration when answering the question about PTA funding. It is possible to consider these sources of funding as distinct, but it is not clear that school administrators would agree.  
