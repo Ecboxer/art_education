@@ -257,13 +257,15 @@ superv_status <- factor(c('Full-time, solely for arts', 'Full-time, with other d
 
 df %>% dplyr::select(q3) %>%
   colSums() %>% as_data_frame() %>%
-  ggplot(aes(x=superv_status, y=value)) +
+  cbind(superv_status) %>% 
+  ggplot(aes(x=reorder(superv_status, -value),
+             y=value)) +
   geom_bar(stat = 'identity') +
   ggtitle('Arts Supervisor Employment Status') +
   xlab('Employment Status') + ylab('Frequency') +
   theme_eric() +
-  theme(text = element_text(size=16),
-        axis.text.x = element_text(size=8))
+  theme(title=element_text(size=16),
+        axis.text=element_text(size=12))
 ```
 
 There are many full-time supervisors with duties other than the arts. I would be curious to discover the share of their responsibilities that are considered "other". It is possible that some administrators consider teaching an arts class or doing clerical work to be "other". Relative to the number of supervisors working full-time, there are few part-timers.  
@@ -495,7 +497,7 @@ My goals are to understand the state of arts programs in NYC schools, what varia
 
 ## Part Three
 
-### Resources devoted to arts education
+### Resources Devoted to Arts Education
 
 This is part of an extended look at the NYC School Arts Survey:  
 [Part One: Arts Education Liaisons](https://ecboxer.github.io/eda/art_education/arts_survey_1.html)  
@@ -588,8 +590,9 @@ df %>% dplyr::select(rooms, total_enrollment_2017, perc_34_all_2018_math) %>%
   lm(perc_34_all_2018_math~., data=.) %>% 
   summary()
 ```
+#### Output 7
 
-Conditioning on the effect of school size, through total enrollment, there is no statistically significant effect for the total number of rooms for arts education on student academic performance.  
+Conditioning on the effect of school size, through total enrollment, we can see no statistically significant effect for the total number of rooms for arts education on student academic performance (Ouptput 7).  
 
 ```{r rooms stats ctrl}
 rooms_ded <- df %>%
@@ -618,8 +621,9 @@ df %>% dplyr::select(rooms_mul, total_enrollment_2017, perc_34_all_2018_math) %>
   lm(perc_34_all_2018_math~., data=.) %>% 
   summary()
 ```
+#### Output 8
 
-Controlling for school size, through total student enrollment, we can see a statistically significant (p-value less than 0.001) positive coefficient for the effect of additional rooms designed and used solely for music, on ELA state test scores. If we consider math scores, rooms solely dedicated to music still have a positive effect, but at a 0.0044 p-value. No other arts disciplines have a statistically significant effect on ELA scores, but dance and media arts rooms have statistically significant (p-value less than 0.05) negative effects on math scores.  
+Controlling for school size, through total student enrollment, we can see a statistically significant (p-value less than 0.001) positive coefficient for the effect of additional rooms designed and used solely for music, on ELA state test scores (Output 8). If we consider math scores, rooms solely dedicated to music still have a positive effect, but at a 0.0044 p-value. No other arts disciplines have a statistically significant effect on ELA scores, but dance and media arts rooms have statistically significant (p-value less than 0.05) negative effects on math scores.  
 When we consider multi-purpose rooms, no arts discipline has a statistically significant effect on academic performance.  
 I am curious about the reason behind why music rooms appear to be associated with higher test scores, and why dance and media arts are associated with lower scores. To investigate we can try to control for different features and divide the performance metric by grade.  
 
@@ -655,8 +659,9 @@ for (i in math_2018) {
   }
 }
 ```
+#### Output 9
 
-If we break down academic performance by grade, then the results are not as straigtforward. For sixth-, seventh- and eighth-graders' ELA performance, media arts rooms have a more statistically significant negative coefficient than the positive coefficient for music rooms. All grades show a positive coefficient for music rooms, with a p-value no more than 0.01. There is a large jump in media arts between fifth- and sixth-grades, which is the demarcation between elementary and middle schools. A jump of this nature could have an underlying reason, beyond increased susceptibility to media arts programs at the expense of academic performance beginning in middle school. Perhaps not many elementary schools have media arts programs at all, or they are more commonly found in schools that are otherwise performing at an atypical level (higher or lower). Both of these can be checked.  
+If we break down academic performance by grade, then the results are not as straigtforward (Output 9). For sixth-, seventh- and eighth-graders' ELA performance, media arts rooms have a more statistically significant negative coefficient than the positive coefficient for music rooms. All grades show a positive coefficient for music rooms, with a p-value no more than 0.01. There is a large jump in media arts between fifth- and sixth-grades, which is the demarcation between elementary and middle schools. A jump of this nature could have an underlying reason, beyond increased susceptibility to media arts programs at the expense of academic performance beginning in middle school. Perhaps not many elementary schools have media arts programs at all, or they are more commonly found in schools that are otherwise performing at an atypical level (higher or lower). Both of these can be checked.  
 Math scores show a similar trend to ELA scores, with most grades showing a statistically significant positive coefficient for music rooms. Among middle schools, media arts rooms have a statistically significant negative coefficient. The key difference with ELA scores is that there is not a statistically significant positive coefficient for music rooms on eighth-grade math scores.  
 
 ```{r media arts elem}
@@ -752,8 +757,9 @@ m.out1 <- matchit(f, data=temp, method='nearest', distance='logit')
 summary(m.out1)
 plot(m.out1)
 ```
+#### Output 10
 
-Propensity score matching improves balance for most features.  
+Propensity score matching improves balance for most features (Output 10).  
 
 ```{r rooms ps match}
 m.data1 <- match.data(m.out1, distance='pscore')
@@ -770,12 +776,12 @@ lm.treat2 <- m.data1 %>%
   lm(perc_34_all_2018_ela~., .)
 summary(lm.treat2)
 ```
-
-Matching suggests that rooms dedicated to media arts are associated with schools with higher ELA scores. The result that led to this investigation was that rooms dedicated to media arts are associated with lower state test scores among middle-schoolers. In light of this analysis I cannot draw any firm conclusions, but would be interested to find some instrumental variable to use in lieu of an experiment.  
+#### Output 11
+Matching suggests that rooms dedicated to media arts are associated with schools with higher ELA scores (Output 11). The result that led to this investigation was that rooms dedicated to media arts are associated with lower state test scores among middle-schoolers. In light of this analysis I cannot draw any firm conclusions, but would be interested to find some instrumental variable to use in lieu of an experiment.  
 
 ## Part Four
 
-### Technology tools
+### Technology Tools
 
 We can also consider the technology tools available to students.
 This includes the various cameras, computers, software, and other tools that can be useful for an arts education.
@@ -1306,14 +1312,12 @@ We can take a look at whether schools with screened arts programs do well in ter
 Seventh grade academic performance will be used as a representative for middle-school performance.
 This is the grade during which students take standardized tests which determine their high-school choices.  
 
-TODO
-```{r screened arts perf}
+```{r screened arts perf, results='hide'}
 fit_scr_ela <- lm(perc_34_7_2017_ela~.,
    data=dplyr::select(df_middle,
               Q20_1,
               perc_34_7_2017_ela,
               q_demo_2017_mid))
-
 step_scr_ela <- stepAIC(fit_scr_ela,
                         direction='both')
 fit_scr_math <- lm(perc_34_7_2017_math~.,
@@ -1323,35 +1327,98 @@ fit_scr_math <- lm(perc_34_7_2017_math~.,
               q_demo_2017_mid))
 step_scr_math <- stepAIC(fit_scr_math,
                         direction='both')
-fit_scr_ela %>% summary()
+```
+
+```{r screened arts perf results}
+# fit_scr_ela %>% summary()
 step_scr_ela %>% summary()
-fit_scr_math %>% summary()
+# fit_scr_math %>% summary()
 step_scr_math %>% summary()
 ```
 
-Fitting a linear regression, for either English or math performance, to having a screened arts program does not yield a statistically significant coefficient. This holds true when we control for school demographic data, too.  
+Fitting a linear regression, for either English or math performance, to having a screened arts program (Q20_1) does not yield a statistically significant coefficient.
+This holds when we control for school demographic data, too.  
 
 ## Part Eight
 
-### Middle school arts sequence
+### Middle School Arts Sequences
 
-Some middle schools offer a three-year sequence of instruction in a single arts discipline. This could be a major differentiating factor in the arts education of participating students, as opposed to a single music class in seventh-grade. Since our data is on the school-level we cannot control for participation in these programs for individual students. It may be doubtful that the presence of such sequences would have a significant effect on an entire school, but we can still have a look.  
+Some middle schools offer a three-year sequence of instruction in a single arts discipline.
+This could be very beneficial to the arts education of participating students.
+The alternatives methods of arts education tend towards a single class meeting most, but not all days, and lacking the direction that a three-year sequence provides.
+It could be interesting to look at the relationship between attending a middle-school with an arts sequence and attending an arts high school.
+That would require an individual-level approach and is outside the scope of our dataset.  
+Since our data is on the school-level we also cannot control for participation in these programs by individual students.
+We may know that a school offers sequences in music and dance but we do not know how many students participate in the programs.
+While it is doubtful that the presence of such sequences would have a significant effect on an entire school, we can still take a look.  
 
 ```{r 3yr sequence setup}
 q22 <- df %>% colnames() %>% .[grepl('Q22', .)] %>% .[grepl('_C1', .)]
-df_middle %>% dplyr::select(q22) %>%
+df_middle %>%
+  dplyr::select(q22) %>%
   colSums() %>% 
   as_data_frame() %>% 
-  ggplot(aes(x=disc_5, y=value)) +
-  geom_bar(stat='identity')
+  mutate(value=value / nrow(df_middle)) %>% 
+  cbind(disc_5) %>% 
+  arrange(desc(value)) %>% 
+  ggplot(aes(x=reorder(disc_5, -value),
+             y=value)) +
+  geom_bar(stat='identity') +
+  xlab('') + ylab('Share of schools') +
+  ggtitle('How many NYC schools offer an arts sequence?') +
+  theme(axis.text=element_text(size=12),
+        axis.title.y=element_text(size=16),
+        title=element_text(size=16)) +
+  theme_eric()
 ```
 
-There are many visual arts and music sequences. Fewer schools have dance or theater sequences, and very few have one in film.
+There are many visual arts and music sequences.
+Fewer schools have dance or theater sequences, and very few have one in film.  
+We can take a look at whether any demographic features are correlated with arts sequences.  
 
-TODO
-Look at whether demographic features correlate with the presence of arts sequences.
+```{r seq demographics}
+df_middle %>%
+  dplyr::select(`Dance sequence`=Q22_R1_C1,
+                q_demo_2017_mid) %>% 
+  glm(`Dance sequence`~., data=.,
+      family='binomial') %>% 
+  summary()
+```
 
-```{r 3yr sequence perf}
+```{r seq demographics hide, results='hide'}
+df_middle %>%
+  dplyr::select(`Film sequence`=Q22_R2_C1,
+                q_demo_2017_mid) %>% 
+  glm(`Film sequence`~., data=.,
+      family='binomial') %>% 
+  summary()
+df_middle %>%
+  dplyr::select(`Music sequence`=Q22_R3_C1,
+                q_demo_2017_mid) %>% 
+  glm(`Music sequence`~., data=.,
+      family='binomial') %>% 
+  summary()
+df_middle %>%
+  dplyr::select(`Theater sequence`=Q22_R4_C1,
+                q_demo_2017_mid) %>% 
+  glm(`Theater sequence`~., data=.,
+      family='binomial') %>% 
+  summary()
+df_middle %>%
+  dplyr::select(`Visual arts sequence`=Q22_R5_C1,
+                q_demo_2017_mid) %>% 
+  glm(`Visual arts sequence`~., data=.,
+      family='binomial') %>% 
+  summary()
+```
+
+In the output above, we can see that the only statistically significant coefficient for dance sequences is a negative one for total enrollment, p-value of 0.00776. 
+We can postulate that this result is picking up the negative correlation between school size and a school's emphasis on the arts. 
+Schools that offer a dance sequence are more likely to be small.
+In middle schools with a dance sequence, the average enrollment in 2017 was 463 students, while in schools without the average was 778 students.
+No other sequences have a coefficient with as small a p-value.
+
+```{r 3yr sequence perf, results='hide'}
 # R1-R5 Dance, Film, Music, Theater, Visual arts
 fit_seq_ela <- lm(perc_34_7_2017_ela~.,
    data=dplyr::select(df_middle,
@@ -1367,6 +1434,9 @@ fit_seq_math <- lm(perc_34_7_2017_math~.,
               q_demo_2017_mid))
 step_seq_math <- stepAIC(fit_seq_math,
                         direction='both')
+```
+
+```{r 3yr sequence perf results}
 fit_seq_ela %>% summary()
 step_seq_ela %>% summary()
 fit_seq_math %>% summary()
@@ -1380,10 +1450,14 @@ Visual arts sequences have a statistically significant positive coefficient for 
 ### Non-DOE Funding
 
 Schools were asked whether they received funding for arts education from sources other than the Department of Education (DOE).
-One would hope that schools with poor, minority students received at least as much external funding as the wealthier and whiter schools.
+One would hope that schools serving poor, minority students receive at least as much external funding as those with wealthy and white students.  
 We can also look at whether there is an association between academic performance and external funding.
-The direction of any relationship between academic performance and funding would be ambiguous. It is possible that funding flows to overperforming schools as their status attracts donors to them or that the additional funding causes increased academic performance.
-To tease this relationship apart we would need to identify an instrumental variable.  
+The direction of such a relationship would be ambiguous.
+It is possible that funding flows to overperforming schools, as their status attracts donors to them.
+On the other hand, additional funding could be the cause of increased academic performance.
+To tease this relationship apart we would need to run an experiment or identify an instrumental variable.
+Perhaps distance to a large cultural organization could serve as an instrumental variable.
+We would still need to control for possible confounding variables introduced by location, such as wealth.  
 
 ```{r arts funding sources}
 q36 <- q_arts %>% .[grepl('Q36', .)] %>% .[grepl('C1', .)]
@@ -1401,63 +1475,102 @@ df %>% dplyr::select(q36) %>%
                        -value),
              y=value)) +
   geom_bar(stat='identity') +
-  xlab('') +
   ggtitle('Frequency of external funding sources') +
-  theme(axis.text=element_text(size=14)) +
-  coord_flip()
+  theme_eric() +
+  theme(axis.text=element_text(size=14),
+        title=element_text(size=16)) +
+  coord_flip() +
+  xlab('') + ylab('Count')
 ```
 
-Government grants are the most common source of non-DOE funding, followed by cultural organizations, and PTA. Educational associations and local business are the least common sources of arts funding.  
+Government grants are the most common source of non-DOE funding, followed by cultural organizations, and PTA (parent teacher associations).
+Educational associations and local business are the least common sources of arts funding.  
+Notably, this data only captures whether or not funding from these sources occurs, not how large the funding is or whether there is a long-term partnership with these organizations.  
 
-Does poverty predict any of the different sources of funding?  
+Does poverty predict any of these sources of funding?  
 
 ```{r art funding poverty}
-for (i in q36) {
+for (i in seq(1,7)) {
   temp <- df %>%
-    dplyr::select(i, perc_pov_2017)
-  temp.glm <- glm(unlist(temp[,1])~unlist(temp[,2]), family='binomial')
-  print(i); print(summary(temp.glm))
+    dplyr::select(q36[i], perc_pov_2017)
+  temp.glm <- glm(unlist(temp[,1])~perc_pov_2017,
+                  data=temp,
+                  family='binomial')
+  if (i %in% c(6,7)) {
+    print(fund_srcs[i])
+    print(summary(temp.glm))
+  }
 }
 ```
 
-Poverty has a statistically significant negative coefficient for PTA/PA funding at a p-value of 0.001 and local arts councils at a p-value of 0.01. Could this effect be clarified by controlling for additional features?
+Poverty has a statistically significant negative coefficient for PTA/PA funding at a p-value of less than 0.001 and local arts councils at a p-value of 0.0280.
+Will this effect be clarified or disappear when we control for additional features?  
 
 ```{r art funding poverty ctrl black}
-for (i in q36) {
-  temp <- df %>% dplyr::select(i, perc_pov_2017, perc_black_2017)
-  temp.glm <- glm(unlist(temp[,1])~unlist(temp[,2])+unlist(temp[,3]), family='binomial')
-  print(i); print(summary(temp.glm))
+for (i in seq(1,7)) {
+  temp <- df %>%
+    dplyr::select(q36[i], perc_pov_2017, perc_black_2017)
+  temp.glm <- glm(unlist(temp[,1])~perc_pov_2017+perc_black_2017,
+                  data=temp,
+                  family='binomial')
+  if (i %in% c(3,6)) {
+    print(fund_srcs[i])
+    print(summary(temp.glm))
+  }
 }
 ```
 
 Now we are performing a binomial regression for each source of funding upon the percentage of impoverished and black students.
-Government grants have a statistically significant positive coefficient for percentage of students in poverty, p-value 0.01, and a negative coefficient for percentage of black students, p-value 0.001.
-PTA funding has a statistically significant negative coefficient for percentage of students in poverty and black students, both at p-values of 0.001.
-These results tell us that funding from government grants tends to flow to schools with poor students and not to those with black students. PTA funding does not tend to flow to poor schools or schools with black students.
-The finding about government grants going to poor schools is hopeful, since these schools are evidently not receiving much funding from PTAs. On the other hand, that government grants are not going to schools with black students is a source of concern. We have not shown that there is a causal relationship, but this correlation should be investigated further.
-Our findings about the direction of PTA funding to richer and whiter schools is should not be surprising. An active PTA can be the difference between whether a school can afford to purchase newly published textbooks or has to stick with science books from the 2000s. The current system will allocate funding from parent donors to their own children's schools, so schools serving wealthier students will benefit most from this source of funding.  
+Government grants have a statistically significant positive coefficient for percentage of students in poverty, p-value 0.0075, and a negative coefficient for percentage of black students, p-value less than 0.001.
+PTA funding has a statistically significant negative coefficient for percentage of students in poverty and black students, both at p-values less than 0.001.  
+This analysis tells us that funding from government grants tends to flow to schools with more poor students and not to those with more black students.
+PTA funding does not tend to flow to poor schools or schools with black students.  
+The finding on government grants going to poor schools is hopeful, since these schools are those not receiving funds from their PTAs.
+On the other hand, that government grants are not going to schools with black students is a source of concern.
+We have not shown that there is a causal relationship, but this correlation could be investigated further.  
+Our findings about the recipients of PTA funding being richer and whiter schools should not be surprising in retrospect.
+An active PTA can be the difference between whether a school can afford to purchase newly published textbooks or has to teach from the same science books they bought decades ago.
+The current funding system will allocate donations from parents to their own children's schools, so those serving wealthier students will be the schools benefitting from PTA funding.  
 
 ```{r art funding poverty ctrl other}
-for (i in q36) {
-  temp <- df %>% dplyr::select(i, perc_pov_2017, perc_black_2017, total_enrollment_2017, perc_34_all_2018)
-  temp.glm <- glm(unlist(temp[,1])~unlist(temp[,2])+unlist(temp[,3])+unlist(temp[,4])+unlist(temp[,5]), family='binomial')
-  print(i); print(summary(temp.glm))
+for (i in seq(1,7)) {
+  temp <- df %>%
+    dplyr::select(q36[i], perc_pov_2017,
+                  perc_black_2017,
+                  total_enrollment_2017,
+                  perc_34_all_2018)
+  temp.glm <- glm(unlist(temp[,1])~perc_pov_2017+perc_black_2017+total_enrollment_2017+perc_34_all_2018_ela+perc_34_all_2018_math,
+                  data=temp,
+                  family='binomial')
+  if (i %in% c(3,6,7)) {
+    print(fund_srcs[i])
+    print(summary(temp.glm))
+  }
 }
 ```
 
 Now we have tried controlling for poverty, percentage of black students, total enrollment, and academic performance.
-Funding from government grants still has a statistically significant negative coefficient for percentage of black students, at a p-value of 0.01. The coefficient for students in poverty is no longer significant. 
-PTA funding has a statistically significant negative coefficient for poverty at a p-value of 0.001. The coefficient for percentage of black students is no longer significant.
-Funding from arts councils has a statistically significant positive coefficient for student population at a p-value of 0.01.  
-That the association between government grants and percentage of black students continues to be a negative one is unfortunate news. As is the lack of an association with poor student populations, whom we would have hoped to receive more funding from this source.
-For PTA funding, controlling for the additional features has removed the significant coefficient for all but the wealth of the student population. As we mentioned earlier, this association is a direct by-product of the PTA system and to be expected. 
-Funding from arts councils has a newly significant association with the size of a school's population. This is interesting because we can postulate reasons for this association, such as greater resources available to large schools allowing them to apply to these councils for funding or greater visibility for large schools to attract council attention. These two mechanisms could be addressed by educating small schools about seeking funding from arts councils or educating the councils about the needs of small schools. It is also possible that the reason is structural, large schools cover more and larger local arts councils which results in their being the recipient of more funding from this source.  
+Funding from government grants still has a statistically significant negative coefficient for percentage of black students, at a p-value of 0.0276.
+The coefficient for students in poverty is no longer significant. 
+PTA funding has a statistically significant negative coefficient for poverty at a p-value of less than 0.001.
+The coefficient for percentage of black students is no longer significant here, too.
+Funding from arts councils has a statistically significant positive coefficient for student population at a p-value of 0.006928.  
+That the association between government grants and percentage of black students continues to be negative is unfortunate.
+As is the lack of an association with poor student populations, whom we would hope to be the recipients of greater funding here.
+For PTA funding, controlling for the additional features has removed significant coefficients for all features but the wealth of the student population.
+As we mentioned earlier, this association is a direct by-product of the PTA system and is to be expected. 
+Funding from arts councils has a newly significant association with the size of school population.
+This is interesting because we can postulate reasons for this association, such as greater resources available to large schools allowing them to apply to these councils for funding or greater visibility for large schools to attract council attention.
+These two mechanisms could be addressed by educating small schools about seeking funding from arts councils or persuading councils to give more to small schools.
+It is also possible that the reason is structural.
+Large schools cover more and larger local arts councils which results in a greater likelihood of receiving funding from at least one arts council.  
 
 ## Part Ten
 
 ### Parental Involvement
 
-Schools were asked about whether parents participated in their arts programs in one of the following ways: attending events, volunteering, donating supplies or other. We can hypothesize that the same schools as receive PTA funding are the ones that have a lot of parental involvement.  
+Schools were asked about whether parents participated in their arts programs in one of the following ways: attending events, volunteering, donating supplies or other.
+We can hypothesize that those schools which receive PTA funding tend to have the greatest parental involvement.  
 
 ```{r parental inv setup}
 q39 <- q_arts %>% .[grepl('Q39', .)]
@@ -1465,12 +1578,16 @@ par_inv <- c('Attending school arts events',
              'Volunteering in arts programs',
              'Donating arts materials',
              'Other')
+print('Example responses for "Other":')
 df %>% dplyr::select(Q39_4, Q0_DBN) %>% 
   group_by(Q39_4) %>% count() %>% 
+  filter(Q39_4 != 0) %>% 
   arrange(desc(n)) %>% head()
 ```
 
-It could be neat to analyze the 'Other' category. For now I'll move the comments over and replace them with 1s.
+We can see that some respondents chose to fill the "Other" category with "none".
+For the most part, schools did fill in legitimate examples of parental involvement.
+We can consider the "Other" category as a form of parental involvement, in general.
 
 ```{r parental inv mutate}
 df$Q39_Other <- df$Q39_4
@@ -1483,36 +1600,43 @@ df %>% dplyr::select(q39) %>% colSums() %>%
              y=value / df %>% nrow())) +
   geom_bar(stat='identity') +
   xlab('') + ylab('Proportion of schools') +
-  theme(axis.text=element_text(size=14)) +
-  coord_flip()
+  ggtitle('How are parents participating in arts education?') +
+  theme_eric() +
+  theme(axis.text=element_text(size=14),
+        axis.title.x=element_text(size=12),
+        title=element_text(size=14)) +
+  coord_flip() 
 ```
 
-Parental participation is most commonly found in the form of attendance at school events. This is the least time-intensive and most emotionally rewarding of the options and fewer parents volunteer or donate art materials.  
+Parental participation occurs most commonly in the form of attendance at school events.
+This is probably the least time-intensive and most emotionally rewarding of the options.
 
 Is there a relationship between poverty and volunteering in arts programs?
 
 ```{r parental inv volunteer}
 df %>% 
-  dplyr::select(Q39_2, perc_pov_2017, total_enrollment_2017, perc_34_all_2018) %>% 
-  glm(Q39_2~., data=., family='binomial') %>% 
+  dplyr::select(Volunteering=Q39_2, perc_pov_2017, total_enrollment_2017, perc_34_all_2018) %>% 
+  glm(Volunteering~.,
+      data=., family='binomial') %>% 
   summary()
 ```
 
-There is a statistically significant negative coefficient for the relationship between poverty and parental volunteering in arts programs at a p-value of 0.01, even after controlling for school size and academic performance.  
+There is a statistically significant negative coefficient for the relationship between poverty and parental volunteering in arts programs at a p-value of 0.00479, even after controlling for school size and academic performance.  
 
-Is there a relationship between poverty and donating arts materials, Q39_3?
+Is there a relationship between poverty and donating arts materials?
 
 ```{r parental inv donation}
 df %>% 
-  dplyr::select(Q39_3, perc_pov_2017, total_enrollment_2017, perc_34_all_2018) %>% 
-  glm(Q39_3~., data=., family='binomial') %>% 
+  dplyr::select(Donating=Q39_3, perc_pov_2017, total_enrollment_2017, perc_34_all_2018) %>% 
+  glm(Donating~.,
+      data=., family='binomial') %>% 
   summary()
 ```
 
-There is a statisically significant negative coefficient for the relationship between poverty and donating arts materials at a p-value of 0.001.  
-We can explicitly look at the correlation between schools receiving funding from their PTAs and parental involvement in the arts.
+There is a statisically significant negative coefficient for the relationship between poverty and donating arts materials at a p-value of less than 0.001.  
+We can explicitly look at the correlation between a school receiving funding from their PTA and parental involvement in the arts.
 
-```{r parental inv corr}
+```{r parental inv corr, fig.height=8, fig.width=8}
 library(lattice)
 df %>%
   dplyr::select(q39, Q36_R6_C1) %>% 
@@ -1523,7 +1647,10 @@ df %>%
                 'PTA Funding'=Q36_R6_C1) %>% 
   cor() %>% 
   levelplot(col.regions=heat.colors(100)[length(heat.colors(100)):1],
-            xlab='', ylab='')
+            xlab='', ylab='',
+            labels=T)
 ```
 
-Of the different manners in which parents can become involved with arts programs directly, PTA funding is most closely associated with donations. This makes sense if we consider that schools reporting parental involvement through donations have taken these into consideration when answering the question about PTA funding. It is possible to consider these sources of funding as distinct, but it is not clear that school administrators would agree.  
+Of the different methods by which parents can become involved with arts programs directly, PTA funding is most closely associated with donations.
+This makes sense, in particular if we consider that schools reporting parental involvement through donations may have taken these into consideration when reporting PTA funding.
+While some administrators may consider these sources of funding to be distinct, it is not clear that all would agree on this point.  

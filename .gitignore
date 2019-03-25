@@ -1,0 +1,11 @@
+.Rproj.user
+*.Rproj
+.Rhistory
+.RData
+.Ruserdata
+.ipynb_checkpoints
+*_files
+*_cache
+resources
+*~
+*_scratch.*

@@ -232,7 +232,7 @@ for (i in ela_2018) {
   if (i %in% c('perc_34_5_2018_ela', 'perc_34_6_2018_ela')){
     print(i)
     print(temp %>% summary())
-    print(temp %>% confint.default())
+    # print(temp %>% confint.default())
   }
 }
 for (i in math_2018) {
@@ -246,7 +246,7 @@ for (i in math_2018) {
   if (i %in% c('perc_34_5_2018_math', 'perc_34_6_2018_math')){
     print(i)
     print(temp %>% summary())
-    print(temp %>% confint.default())
+    # print(temp %>% confint.default())
   }
 }
 ```
@@ -266,8 +266,10 @@ for (i in 1:5){
     as_data_frame() %>% 
     ggplot(aes(x=disc_5.1, y=value)) +
     geom_bar(stat='identity') +
-    ggtitle(q_elem[i])
-  print(temp)
+    ggtitle(q_elem[i]) + theme_eric()
+  if (i == 5) {
+    print(temp)
+  }
 }
 for (i in 1:3){
   temp <- df %>% select(q_mid[i], rooms_ded) %>% 
@@ -277,37 +279,55 @@ for (i in 1:3){
     as_data_frame() %>% 
     ggplot(aes(x=disc_5.1, y=value)) +
     geom_bar(stat='identity') +
-    ggtitle(q_mid[i])
-  print(temp)
+    ggtitle(q_mid[i]) + theme_eric()
+  if (i == 1) {
+    print(temp)
+  }
 }
 for (i in q_elem){
   temp <- df %>% select(i, rooms_ded) %>% 
     filter((!!sym(i)) > 0) %>% 
     select(-(!!sym(i))) %>% 
+    mutate(dance_rooms = Q8_R1_C1,
+           music_rooms = Q8_R2_C1,
+           theater_rooms = Q8_R3_C1,
+           visual_arts_rooms = Q8_R4_C1,
+           media_arts_rooms = Q8_R5_C1) %>% 
+    select(ends_with('rooms')) %>%
     gather(key = discipline,
            value = num) %>% 
     ggplot(aes(x=num)) +
     geom_density() +
     facet_wrap(~discipline) +
-    ggtitle(i)
-  print(temp)
+    ggtitle(i) + theme_eric()
+  if (i == 'grd_5_2017') {
+    print(temp)
+  }
 }
 for (i in q_mid){
   temp <- df %>% select(i, rooms_ded) %>% 
     filter((!!sym(i)) > 0) %>% 
     select(-(!!sym(i))) %>% 
+    mutate(dance_rooms = Q8_R1_C1,
+           music_rooms = Q8_R2_C1,
+           theater_rooms = Q8_R3_C1,
+           visual_arts_rooms = Q8_R4_C1,
+           media_arts_rooms = Q8_R5_C1) %>% 
+    select(ends_with('rooms')) %>%
     gather(key = discipline,
            value = num) %>% 
     ggplot(aes(x=num)) +
     geom_density() +
     facet_wrap(~discipline) +
-    ggtitle(i)
-  print(temp)
+    ggtitle(i) + theme_eric()
+  if (i == 'grd_6_2017') {
+    print(temp)
+  }
 }
 ```
 
-I do not see a significant difference in the distribution of art rooms between elementary- and middle-schools. Let's look at the performance of schools with media arts programs.  
-We can match schools on having media arts rooms by controlling for number of students, number of students in each grade, and perhaps other demographic and academic features. Then we can look at effect on academic performance.  
+I do not see a significant difference in the distribution of art rooms between elementary and middle schools. Music and visual arts rooms are the most common. Let's look at the performance of schools with media arts programs.  
+We can match schools on having media arts rooms while controlling for number of students, number of students in each grade, and perhaps other demographic and academic features. Then we can examine the effect of media arts rooms on academic performance.  
 
 ```{r rooms media match}
 library(MatchIt)
@@ -322,10 +342,14 @@ temp <- df %>%
 m.out1 <- matchit(f, data=temp, method='nearest', distance='logit')
 summary(m.out1)
 plot(m.out1)
+```
 
+Propensity score matching improves balance for most features.  
+
+```{r rooms ps match}
 m.data1 <- match.data(m.out1, distance='pscore')
-hist(m.data1$pscore, breaks=30)
-summary(m.data1$pscore)
+# hist(m.data1$pscore, breaks=30)
+# summary(m.data1$pscore)
 
 with(m.data1, t.test(perc_34_all_2018_ela ~ rm_ded_media))
 
@@ -337,7 +361,7 @@ lm.treat2 <- m.data1 %>% select(-weights) %>%
 summary(lm.treat2)
 ```
 
-Propensity score matching suggests that rooms dedicated to media arts are associated with schools with higher ELA scores. The result that led to this investigation was that rooms dedicated to media arts are associated with lower state test scores among middle-schoolers. In light of this analysis I would not draw any firm conclusions, but would be interested to find some instrumental variable to use in lieu of an experiment.  
+Matching suggests that rooms dedicated to media arts are associated with schools with higher ELA scores. The result that led to this investigation was that rooms dedicated to media arts are associated with lower state test scores among middle-schoolers. In light of this analysis I cannot draw any firm conclusions, but would be interested to find some instrumental variable to use in lieu of an experiment.  
 
 ## NYC Schools Arts Survey Data
 The [2017-2018 Arts Survey Data](https://data.cityofnewyork.us/Education/2017-2018-Arts-Survey-Data/475h-cg5t) has data about arts teachers, budgets, partnerships with cultural organizations and parental involvement in NYC public schools.  

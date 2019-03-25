@@ -236,3 +236,505 @@ To measure academic performance, we can use the percentage of students to receiv
 However, considering the causal relationship above, we can introduce context by conditioning on student poverty, share of black students, and total enrollment. In this case we do not have any statistically significant relation with ELA scores and a four point decrease in math scores, but at a 0.04 significance level.  
 
 Next time, I will continue going through the survey. The presence of an arts supervisor does not necessarily equate to a well-resourced and efficacious arts program, so I hope to find some interesting questions.
+
+
+### Arts Supervisors
+
+New York City public schools were asked whether their arts supervisor was employed full- or part-time. If their supervisor was full-time, schools clarified whether they were solely working on arts programs or had other responsibilities.  
+In small schools, or under-resourced ones, faculty may be expected to wear many hats. In the simplest cases, physical education teachers lead gym and health classes. More extreme examples can have teachers with certification in, for example, English teaching classes in math or science. I do not assert that an arts supervisor *must* be employed full-time to run an effective program, but I am curious as to what features predict their employment status.  
+
+```{r q3 bar}
+superv_status <- factor(c('Full-time, solely for arts', 'Full-time, with other duties', 'Part-time', 'None'),
+                          levels=c('Full-time, solely for arts', 'Full-time, with other duties', 'Part-time', 'None'))
+
+df %>% dplyr::select(q3) %>%
+  colSums() %>% as_data_frame() %>%
+  ggplot(aes(x=superv_status, y=value)) +
+  geom_bar(stat = 'identity') +
+  ggtitle('Arts Supervisor Employment Status') +
+  xlab('Employment Status') + ylab('Frequency') +
+  theme_eric() +
+  theme(text = element_text(size=16),
+        axis.text.x = element_text(size=8))
+```
+
+There are many full-time supervisors with duties other than the arts. I would be curious to discover the share of their responsibilities that are considered "other". It is possible that some administrators consider teaching an arts class or doing clerical work to be "other". Relative to the number of supervisors working full-time, there are few part-timers.  
+
+```{r missing q3, results = 'hide'}
+df$Q3 <- with(df, ifelse(Q3_1 == 1, '1',
+                ifelse(Q3_2 == 1, '2',
+                       ifelse(Q3_3 == 1, '3',
+                              ifelse(Q3_4 == 1, '4', '0')))))
+df$Q3 <- df$Q3 %>% factor(levels=seq(0,4))
+df %>% filter(Q3 == '0') %>% count()
+#Two schools did not respond to Q3
+```
+
+Only two schools did not respond to this question about their arts supervisor's status. In the previous [part](https://ecboxer.github.io/eda/art_education/arts_survey_1.html), I looked at the question of whether a school had a designated arts liaison. 72 schools responded that they did not, while 296 schools do not have any arts supervisor. I wonder whether the presence of an arts supervisor has more or less influence on student academic performance, relative to arts liaisons.  
+
+To begin exploring academic performance, I will use the percentage of students to perform at or above standards for English Language Arts (ELA) and math.  
+
+```{r math and ela scores, fig.width=8, fig.height=8}
+df %>% dplyr::select(perc_34_all_2018, Q3) %>%
+  filter(!is.na(perc_34_all_2018_ela)) %>% 
+  filter(Q3 != 0) %>% 
+  mutate(Q3 = factor(ifelse(Q3 == 1, 'Full-time, solely for arts',
+                            ifelse(Q3 == 2, 'Full-time, with other duties',
+                                   ifelse(Q3 == 3, 'Part-time', 'None'))))) %>% 
+  ggplot(aes(x=perc_34_all_2018_ela, y=perc_34_all_2018_math)) +
+  geom_point(alpha = .8) + facet_wrap(~Q3,
+                            labeller = label_value) +
+  ggtitle('Academic Performance, by Supervisor Status') +
+  xlab('Students Passing, ELA (%)') +
+  ylab('Students Passing, Math (%)') + theme_eric() +
+  theme(text = element_text(size=16),
+        axis.text.x = element_text(size=8))
+```
+
+I came into this analysis with some suspicion that arts programs might be more beneficial for ELA performance than for math, if they were to have any effect. In the plot above there is a positive relationship between ELA and math scores, regardless of art supervisor status.  
+
+```{r supervisor status stats, results = 'hide'}
+for (i in seq(4)) {
+  lm.fit <- df %>% select(perc_34_all_2018, Q3) %>% 
+    filter(Q3 == i) %>% 
+    lm(perc_34_all_2018_ela~perc_34_all_2018_math, data=.)
+  print(i)
+  print(lm.fit %>% summary())
+  print(lm.fit %>% confint())
+}
+```
+
+```{r supervisor performance stats null}
+lm.fit.null <- df %>% select(perc_34_all_2018) %>% 
+  rename(Math_score = perc_34_all_2018_math,
+         ELA_score = perc_34_all_2018_ela) %>% 
+  lm(Math_score~., data=.)
+lm.fit.null.summ <- lm.fit.null %>% summary()
+lm.fit.null.summ
+```
+#### Output 1
+
+On inspection the relation between the two scores seems identical between supervisor statuses. In fact, fitting a linear regression to each yields coefficients close to the uncontrolled coefficient for math scores on ELA scores, 1.06415 (Output 1). $Math\_score = \beta_0 + \beta_1 * ELA\_score$  
+
+```{r supervisor performance stats control}
+lm.fit <- df %>% select(q3, perc_34_all_2018) %>% 
+  rename(Math_score = perc_34_all_2018_math,
+         ELA_score = perc_34_all_2018_ela) %>% 
+  lm(Math_score~., data=.)
+lm.fit.summ <- lm.fit %>% summary()
+lm.fit.summ
+```
+#### Output 2
+
+We can control for supervisor status with dummy variables by altering the regression like so, $Math\_score = \beta_0 + \beta_1 * ELA\_score + \beta_2 * Q3\_1 + \beta_3 * Q3\_2 + \beta_4 * Q3\_3 + \beta_5 * Q3\_4$, where $Q3\_i$ corresponds to the $i^{th}$ member of the list `c('Full-time, solely for arts', 'Full-time, with other duties', 'Part-time', 'None')` (Output 2).  
+
+```{r supervisor performance stats control confint}
+lm.fit %>% confint()
+```
+#### Output 3
+
+This model specification does not result in a compellingly significant coefficient for the effect of a particular supervisor status. Any status is estimated to have a positive coefficient, but a 95% confidence interval (Output 3) does not exclude the possibility that any of status coefficients could be zero.  
+
+```{r supervisor performance diff, echo=TRUE}
+delta.beta1 <- coefficients(lm.fit.null.summ)[2,1] - coefficients(lm.fit.summ)[6,1]
+delta.beta1
+se.delta.beta1 <- sqrt(coefficients(lm.fit.null.summ)[2,2]^2 + coefficients(lm.fit.summ)[6,2]^2)
+se.delta.beta1
+```
+#### Output 4
+
+On inspection, the regression coefficients for `ELA_score` are close between model specifications A (no controls) and B (controlling for supervisor status). The difference in estimated coefficients $\beta_1$ is -0.0003 (Output 4). To find the variability of the difference in regression coefficients, we use the formula $Var(A-B) = Var(A) + Var(B) - 2*Cov(A,B)$. Assuming covariance between the two estimates is zero, we arrive at 0.0201 as the standard error of the difference.  
+Now I can assert that there is no difference in the relationsip between ELA and math scores from supervisor statuses.  
+
+```{r mosaic, fig.width=15, fig.height=10}
+library(ggmosaic)
+df %>% select(Q2_1, Q3) %>% 
+  mutate(Q2_1 = ifelse(Q2_1 == 1, 'No', 'Yes'),
+         Q3 = factor(ifelse(Q3 == 1, 'Full-time, solely for arts',
+                            ifelse(Q3 == 2, 'Full-time, with other duties',
+                                   ifelse(Q3 == 3, 'Part-time', 'None'))))) %>% 
+  mutate(Q3 = as_factor(Q3, levels = c('Full-time, solely for arts',
+                    'Full-time, with other duties',
+                    'Part-time',
+                    'None'))) %>% 
+  ggplot() + 
+  geom_mosaic(aes(x=product(Q3, Q2_1), fill=Q3), na.rm=T) +
+  scale_fill_manual(values=c5) +
+  ggtitle('Does Having an Arts Liaison Affect Supervisor Status?') +
+  xlab('School arts liaison?') +
+  ylab('Arts Supervisor Status') + theme_eric() +
+  theme(text = element_text(size=20),
+        axis.text.x = element_text(size=12))
+```
+
+This mosaic plot illustrates that the proportion of schools without an arts program supervisor is greater for schools without an arts liaison that for those with. This lends support to the idea that those schools are lacking the resources to fully staff their arts programs, as they have not filled two key positions. It is of course possible that arts liaisons and supervisors are not necessary to effective programs, and schools without either are running just fine. I would like to assess the quality of the arts programs themselves as a function their liaison and supervisor statuses, perhaps through some sort of measure of funding or arts resources.  
+
+***
+
+The next questions concern certifications that arts supervisors may have, either in an arts discipline or in administration.  
+
+```{r supervisor cert both, results = 'hide'}
+df %>% filter(Q4_1 == 1 & Q5_1 == 1) %>% count()
+df %>% filter(Q4_1 == 1) %>% count()
+df %>% filter(Q5_1 == 1) %>% count()
+```
+
+```{r supervisor cert}
+df$supervisor_cert <- with(df, ifelse(Q4_1 == 1 & Q5_1 == 1, 'Both',
+                ifelse(Q4_1 == 1 & Q5_1 == 0, 'Arts',
+                       ifelse(Q4_1 == 0 & Q5_1 == 1, 'Administration', 'None'))))
+df %>% dplyr::select(Q0_DBN, supervisor_cert) %>% 
+  group_by(supervisor_cert) %>% 
+  count() %>% 
+  ggplot(aes(x=supervisor_cert, y=n)) +
+  geom_bar(stat='identity') +
+  ggtitle('Does the Arts Supervisor Have Any Certifications?') +
+  xlab('Supervisor Certification') + ylab('Frequency') +
+  theme(text = element_text(size=16),
+        axis.text.x = element_text(size=8))
+```
+
+Few supervisors are certified in the arts, the majority are administrators. Could this have an impact on the efficacy of an arts program?  
+
+```{r supervisor cert stats, results='hide'}
+df <- df %>%
+  mutate(supervisor_cert_both = ifelse(Q4_1 == 1 & Q5_1 == 1, 1, 0))
+q_certs <- c('Q4_1', 'Q5_1', 'supervisor_cert_both')
+df %>%
+  dplyr::select(q_certs, perc_34_all_2018_ela) %>% 
+  lm(perc_34_all_2018_ela~., data=.) %>% 
+  summary()
+df %>%
+  dplyr::select(q_certs, perc_34_all_2018_math) %>% 
+  lm(perc_34_all_2018_math~., data=.) %>% 
+  summary()
+```
+
+Linear regressions do not yield a statistically significant result for the effect of either or both supervisor certification on student academic performance. The model specifications I tried out were of the form $score = \beta_0 + \beta_1 * arts\_cert + \beta_2 * admin\_cert + \beta_3 * both\_cert$.  
+
+```{r supervisor cert stats ctrl}
+df <- df %>%
+  mutate(supervisor_cert_both = ifelse(Q4_1 == 1 & Q5_1 == 1, 1, 0))
+q_certs <- c('Q4_1', 'Q5_1', 'supervisor_cert_both')
+lm.ela <- df %>%
+  dplyr::select(q_certs, total_enrollment_2017, perc_black_2017, perc_pov_2017, perc_34_all_2018_ela) %>% 
+  rename(arts_cert = Q4_1,
+         admin_cert = Q5_1,
+         both_cert = supervisor_cert_both) %>% 
+  lm(perc_34_all_2018_ela~., data=.)
+lm.ela %>% summary()
+lm.ela %>% confint()
+lm.math <- df %>%
+  dplyr::select(q_certs, total_enrollment_2017, perc_black_2017, perc_pov_2017, perc_34_all_2018_math) %>% 
+  rename(arts_cert = Q4_1,
+         admin_cert = Q5_1,
+         both_cert = supervisor_cert_both) %>% 
+  lm(perc_34_all_2018_math~., data=.)
+lm.math %>% summary()
+lm.math %>% confint()
+```
+#### Output 5
+
+After controlling for school size and percentage of black and impoverished students, there is no statistically significant effect for certifications on academic performance. A 95% confidence interval of the coefficient for supervisor certification in administration includes zero for ELA and math scores, so we cannot claim that there is a statistically significant nonzero effect on academic performance. The confidence interval for arts or both certifications are even wider.  
+
+```{r supervisor cert stats narrow ctrl}
+df <- df %>%
+  mutate(supervisor_cert_both = ifelse(Q4_1 == 1 & Q5_1 == 1, 1, 0))
+q_certs <- c('Q4_1', 'Q5_1', 'supervisor_cert_both')
+lm.ela <- df %>%
+  dplyr::select(q_certs, total_enrollment_2017, perc_black_2017, perc_pov_2017, perc_4_all_2018_ela) %>% 
+  rename(arts_cert = Q4_1,
+         admin_cert = Q5_1,
+         both_cert = supervisor_cert_both) %>% 
+  lm(perc_4_all_2018_ela~., data=.)
+lm.ela %>% summary()
+lm.ela %>% confint()
+lm.math <- df %>%
+  dplyr::select(q_certs, total_enrollment_2017, perc_black_2017, perc_pov_2017, perc_4_all_2018_math) %>% 
+  rename(arts_cert = Q4_1,
+         admin_cert = Q5_1,
+         both_cert = supervisor_cert_both) %>% 
+  lm(perc_4_all_2018_math~., data=.)
+lm.math %>% summary()
+lm.math %>% confint()
+```
+#### Output 6
+
+If we drill down further, looking at only the percentage of students to receive a 4 (the highest grade), then there is a statistically significant coefficient for the effect of both certifications on math scores, with a p-value of 0.048996 (Output 6). In this case, a 95% confidence interval just excludes zero, being [0.025, 11.354].  
+Having been able to arrive at this more tenuous result I feel a renewed belief that arts programs do have an effect on academic performance and that some proof is lying in the data somewhere. On the other hand I am suspicious as to how I *manufactured* this result by narrowing my focus until I hacked my way to an accceptable p-value.  
+
+## Data Provenance
+The [2017-2018 Arts Survey Data](https://data.cityofnewyork.us/Education/2017-2018-Arts-Survey-Data/475h-cg5t) has data about arts teachers, budgets, partnerships with cultural organizations and parental involvement in NYC public schools.  
+
+In an effort to gain greater context for this data, I have examined it in conjuction with publicly available [ELA and Math state test results](https://infohub.nyced.org/reports-and-policies/citywide-information-and-data/test-results) and [demographic data](https://data.cityofnewyork.us/Education/2013-2018-Demographic-Snapshot-School/s52a-8aq6).  
+
+My goals are to understand the state of arts programs in NYC schools, what variables affect the resources of arts programs, and whether arts programs have an effect on the academic performance of students.  
+
+### Resources devoted to arts education
+
+This is part of an extended look at the NYC School Arts Survey:  
+[Part One: Arts Education Liaisons](https://ecboxer.github.io/eda/art_education/arts_survey_1.html)  
+[Part Two: Arts Education Supervisors](https://ecboxer.github.io/eda/art_education/arts_survey_2.html)  
+
+The survey had several questions regarding which resources schools are devoting to arts education, whether the administrator thought they were sufficient and which non-Department of Education sources of support were available to them.    
+
+Schools were asked how many rooms they have dedicated to arts education. Rooms were divided into two categories: "rooms designed and used solely for the arts" and "multi-purpose or general education classroooms used for arts education". Five arts disciplines were considered: dance, music, theater, visual arts, and media arts (a category which includes film and photography). Note that the term media arts refers to film programs.  
+Number of rooms is certainly not a direct metric for a school's commitment to the arts. I hypothesize that it may prove useful for assessing the resources that are made available for arts education more broadly. Of course, there may be confounding factors, such as school size and borough.  
+
+```{r rooms setup}
+q8 <- df %>% colnames() %>% .[grepl('Q8_', .)]
+df <- df %>%
+  mutate(dance_rooms = Q8_R1_C1 + Q8_R1_C2,
+         music_rooms = Q8_R2_C1 + Q8_R2_C2,
+         theater_rooms = Q8_R3_C1 + Q8_R3_C2,
+         visual_arts_rooms = Q8_R4_C1 + Q8_R4_C2,
+         media_arts_rooms = Q8_R5_C1 + Q8_R5_C2)
+rooms <- df %>% colnames %>% .[grepl('rooms', .)]
+df %>% 
+  dplyr::select(ends_with('rooms')) %>% 
+  gather(key = discipline,
+         value = num) %>%
+  ggplot(aes(x=num)) +
+  geom_density() +
+  facet_wrap(~discipline, labeller=label_value) +
+  xlab('Number of rooms') +
+  ggtitle('Number of rooms used in arts education') +
+  theme_eric()
+df %>% 
+  dplyr::select(ends_with('rooms')) %>% 
+  gather(key = discipline,
+         value = num) %>%
+  ggplot(aes(x=num)) +
+  geom_histogram(bins=30) +
+  facet_wrap(~discipline, labeller=label_value) +
+  xlab('Number of rooms') + 
+  theme_eric()
+```
+
+All disciplines show the same trend; many schools have zero to two rooms for a given discipline and a few schools have more than twenty rooms. Having twenty-some rooms might be bordering on unrealistic, but the above plots depict both categories of rooms, those designed solely for the arts and multi-purpose. Will we get more reasonable numbers by examining the room counts separately?  
+
+```{r rooms solely}
+df %>% select(q8) %>%
+  select(ends_with('C1')) %>% 
+  mutate(dance_rooms = Q8_R1_C1,
+         music_rooms = Q8_R2_C1,
+         theater_rooms = Q8_R3_C1,
+         visual_arts_rooms = Q8_R4_C1,
+         media_arts_rooms = Q8_R5_C1) %>% 
+  select(ends_with('rooms')) %>% 
+  gather(key = discipline,
+         value = num) %>% 
+  filter(!is.na(num)) %>% 
+  ggplot(aes(x=num)) +
+  geom_density() +
+  facet_wrap(~discipline) +
+  ggtitle('Rooms designed and used solely for the arts') +
+  theme_eric()
+df %>% select(q8) %>%
+  select(ends_with('C2')) %>% 
+  mutate(dance_rooms = Q8_R1_C2,
+         music_rooms = Q8_R2_C2,
+         theater_rooms = Q8_R3_C2,
+         visual_arts_rooms = Q8_R4_C2,
+         media_arts_rooms = Q8_R5_C2) %>% 
+  select(ends_with('rooms')) %>% 
+  gather(key = discipline,
+         value = num) %>% 
+  filter(!is.na(num)) %>% 
+  ggplot(aes(x=num)) +
+  geom_density() +
+  facet_wrap(~discipline) +
+  ggtitle('Multi-purpose and general education classrooms used for arts education') + 
+  theme_eric()
+```
+
+Looking at the number of rooms designed solely for the arts, the maximum number of rooms is a more reasonable thirteen. For a school with several hundred students and a dedicated arts program I can picture that. If we look at multi-purpose rooms, we see that this class contains the bulk of the rooms. Not many schools have dozens of multi-purpose rooms for arts disciplines, but again, in the context of a large school, it seems like a possible number for some schools to have.  
+I would be curious to discover the overlap for multi-purpose rooms among arts disciplines. In other words, is a school with twenty multi-purpose rooms reporting some of those rooms as in use for multiple arts discipline? I do not see any way to completely correct for that possibility, but it would be interesting to control for school size to try to get to the bottom of it. If this does not work, then we could consider only the number of rooms designed solely for art, but this could penalize small schools unduly.  
+
+```{r rooms stats}
+#ELA
+df %>% dplyr::select(rooms, total_enrollment_2017, perc_34_all_2018_ela) %>% 
+  lm(perc_34_all_2018_ela~., data=.) %>% 
+  summary()
+#Math
+df %>% dplyr::select(rooms, total_enrollment_2017, perc_34_all_2018_math) %>%
+  lm(perc_34_all_2018_math~., data=.) %>% 
+  summary()
+```
+
+Conditioning on the effect of school size, through total enrollment, there is no statistically significant effect for the total number of rooms for arts education on student academic performance.  
+
+```{r rooms stats ctrl}
+rooms_ded <- df %>% select(q8) %>%
+  dplyr::select(ends_with('C1')) %>% colnames()
+rooms_mul <- df %>% select(q8) %>%
+  dplyr::select(ends_with('C2')) %>% colnames()
+#ELA dedicated
+df %>% dplyr::select(rooms_ded, total_enrollment_2017, perc_34_all_2018_ela) %>% 
+  lm(perc_34_all_2018_ela~., data=.) %>% 
+  summary()
+#Math dedicated
+df %>% dplyr::select(rooms_ded, total_enrollment_2017, perc_34_all_2018_math) %>%
+  lm(perc_34_all_2018_math~., data=.) %>% 
+  summary()
+```
+
+```{r rooms stats ctrl multi, results='hide'}
+#ELA multi
+df %>% dplyr::select(rooms_mul, total_enrollment_2017, perc_34_all_2018_ela) %>% 
+  lm(perc_34_all_2018_ela~., data=.) %>% 
+  summary()
+#Math multi
+df %>% dplyr::select(rooms_mul, total_enrollment_2017, perc_34_all_2018_math) %>%
+  lm(perc_34_all_2018_math~., data=.) %>% 
+  summary()
+```
+
+Controlling for school size, through total student enrollment, we can see a statistically significant (p-value less than 0.001) positive coefficient for the effect of additional rooms designed and used solely for music, on ELA state test scores. If we consider math scores, rooms solely dedicated to music still have a positive effect, but at a 0.0044 p-value. No other arts disciplines have a statistically significant effect on ELA scores, but dance and media arts rooms have statistically significant (p-value less than 0.05) negative effects on math scores.  
+When we consider multi-purpose rooms, no arts discipline has a statistically significant effect on academic performance.  
+I am curious about the reason behind why music rooms appear to be associated with higher test scores, and why dance and media arts are associated with lower scores. To investigate we can try to control for different features and divide the performance metric by grade.  
+
+```{r rooms grades}
+ela_2018 <- q_ela %>% .[grepl('perc_34_[3-8]_2018',.)]
+math_2018 <- q_math %>% .[grepl('perc_34_[3-8]_2018',.)]
+for (i in ela_2018) {
+  temp <- df %>%
+    dplyr::select(i, rooms_ded, total_enrollment_2017) %>% 
+    .[complete.cases(.),]
+  f.ela.1 <- paste(as.character(i), 'total_enrollment_2017', sep='~')
+  f.ela.2 <-  paste(rooms_ded, collapse='+')
+  f.ela <- as.formula(paste(f.ela.1, f.ela.2, sep='+'))
+  temp <- temp %>% lm(f.ela, data=.)
+  if (i %in% c('perc_34_5_2018_ela', 'perc_34_6_2018_ela')){
+    print(i)
+    print(temp %>% summary())
+    # print(temp %>% confint.default())
+  }
+}
+for (i in math_2018) {
+  temp <- df %>%
+    dplyr::select(i, rooms_ded, total_enrollment_2017) %>% 
+    .[complete.cases(.),]
+  f.math.1 <- paste(as.character(i), 'total_enrollment_2017', sep='~')
+  f.math.2 <-  paste(rooms_ded, collapse='+')
+  f.math <- as.formula(paste(f.math.1, f.math.2, sep='+'))
+  temp <- temp %>% lm(f.math, data=.)
+  if (i %in% c('perc_34_5_2018_math', 'perc_34_6_2018_math')){
+    print(i)
+    print(temp %>% summary())
+    # print(temp %>% confint.default())
+  }
+}
+```
+
+If we break down academic performance by grade, then the results are not as straigtforward. For sixth-, seventh- and eighth-graders' ELA performance, media arts rooms have a more statistically significant negative coefficient than the positive coefficient for music rooms. All grades show a positive coefficient for music rooms, with a p-value no more than 0.01. There is a large jump in media arts between fifth- and sixth-grades, which is the demarcation between elementary and middle schools. A jump of this nature could have an underlying reason, beyond increased susceptibility to media arts programs at the expense of academic performance beginning in middle school. Perhaps not many elementary schools have media arts programs at all, or they are more commonly found in schools that are otherwise performing at an atypical level (higher or lower). Both of these can be checked.  
+Math scores show a similar trend to ELA scores, with most grades showing a statistically significant positive coefficient for music rooms. Among middle schools, media arts rooms have a statistically significant negative coefficient. The key difference with ELA scores is that there is not a statistically significant positive coefficient for music rooms on eighth-grade math scores.  
+
+```{r media arts elem}
+q_elem <- q_demo %>% .[grepl('grd_[1-5]_2017', .)]
+q_mid <- q_demo %>% .[grepl('grd_[6-8]_2017', .)]
+disc_5.1 <- c('Dance', 'Music', 'Theater', 'Visual Arts', 'Media Arts')
+for (i in 1:5){
+  temp <- df %>% select(q_elem[i], rooms_ded) %>% 
+    filter((!!sym(q_elem[i])) > 0) %>% 
+    select(-(!!sym(q_elem[i]))) %>% 
+    colSums(na.rm = T) %>%
+    as_data_frame() %>% 
+    ggplot(aes(x=disc_5.1, y=value)) +
+    geom_bar(stat='identity') +
+    ggtitle(q_elem[i]) + theme_eric()
+  if (i == 5) {
+    print(temp)
+  }
+}
+for (i in 1:3){
+  temp <- df %>% select(q_mid[i], rooms_ded) %>% 
+    filter((!!sym(q_mid[i])) > 0) %>% 
+    select(-(!!sym(q_mid[i]))) %>% 
+    colSums(na.rm = T) %>%
+    as_data_frame() %>% 
+    ggplot(aes(x=disc_5.1, y=value)) +
+    geom_bar(stat='identity') +
+    ggtitle(q_mid[i]) + theme_eric()
+  if (i == 1) {
+    print(temp)
+  }
+}
+for (i in q_elem){
+  temp <- df %>% select(i, rooms_ded) %>% 
+    filter((!!sym(i)) > 0) %>% 
+    select(-(!!sym(i))) %>% 
+    mutate(dance_rooms = Q8_R1_C1,
+           music_rooms = Q8_R2_C1,
+           theater_rooms = Q8_R3_C1,
+           visual_arts_rooms = Q8_R4_C1,
+           media_arts_rooms = Q8_R5_C1) %>% 
+    select(ends_with('rooms')) %>%
+    gather(key = discipline,
+           value = num) %>% 
+    ggplot(aes(x=num)) +
+    geom_density() +
+    facet_wrap(~discipline) +
+    ggtitle(i) + theme_eric()
+  if (i == 'grd_5_2017') {
+    print(temp)
+  }
+}
+for (i in q_mid){
+  temp <- df %>% select(i, rooms_ded) %>% 
+    filter((!!sym(i)) > 0) %>% 
+    select(-(!!sym(i))) %>% 
+    mutate(dance_rooms = Q8_R1_C1,
+           music_rooms = Q8_R2_C1,
+           theater_rooms = Q8_R3_C1,
+           visual_arts_rooms = Q8_R4_C1,
+           media_arts_rooms = Q8_R5_C1) %>% 
+    select(ends_with('rooms')) %>%
+    gather(key = discipline,
+           value = num) %>% 
+    ggplot(aes(x=num)) +
+    geom_density() +
+    facet_wrap(~discipline) +
+    ggtitle(i) + theme_eric()
+  if (i == 'grd_6_2017') {
+    print(temp)
+  }
+}
+```
+
+I do not see a significant difference in the distribution of art rooms between elementary and middle schools. Music and visual arts rooms are the most common. Let's look at the performance of schools with media arts programs.  
+We can match schools on having media arts rooms while controlling for number of students, number of students in each grade, and perhaps other demographic and academic features. Then we can examine the effect of media arts rooms on academic performance.  
+
+```{r rooms media match}
+library(MatchIt)
+#Feature for having rooms dedicated to media arts
+df <- df %>% filter(!is.na(Q8_R5_C1)) %>% 
+  mutate(rm_ded_media = as.integer(pmin(1, Q8_R5_C1, na.rm=T)))
+f.1 <- paste(paste(q_elem, collapse='+'), paste(q_mid, collapse='+'), sep='+')
+f <- as.formula(paste('rm_ded_media~perc_34_all_2018_ela+total_enrollment_2017', f.1, sep='+'))
+temp <- df %>%
+  dplyr::select(rm_ded_media, perc_34_all_2018_ela, total_enrollment_2017, q_elem, q_mid) %>% 
+  .[complete.cases(.),]
+m.out1 <- matchit(f, data=temp, method='nearest', distance='logit')
+summary(m.out1)
+plot(m.out1)
+```
+
+Propensity score matching improves balance for most features.  
+
+```{r rooms ps match}
+m.data1 <- match.data(m.out1, distance='pscore')
+# hist(m.data1$pscore, breaks=30)
+# summary(m.data1$pscore)
+
+with(m.data1, t.test(perc_34_all_2018_ela ~ rm_ded_media))
+
+lm.treat1 <- lm(perc_34_all_2018_ela~rm_ded_media, data=m.data1)
+summary(lm.treat1)
+
+lm.treat2 <- m.data1 %>% select(-weights) %>%
+  lm(perc_34_all_2018_ela~., .)
+summary(lm.treat2)
+```
+
+Matching suggests that rooms dedicated to media arts are associated with schools with higher ELA scores. The result that led to this investigation was that rooms dedicated to media arts are associated with lower state test scores among middle-schoolers. In light of this analysis I cannot draw any firm conclusions, but would be interested to find some instrumental variable to use in lieu of an experiment.  
