@@ -1,6 +1,6 @@
 ---
 author: "Eric Boxer"
-date: "`r format(Sys.time(), '%d %B, %Y')`"
+date: "March 26, 2019"
 output: html_document
 editor_options: 
   chunk_output_type: console
